@@ -26,6 +26,7 @@
 #include <QDesktopServices>
 #include <QUuid>
 #include <QTextDocumentFragment>
+#include <QApplication>
 
 #include "DoubleSpinBox.hpp"
 #include "SpinBox.hpp"
@@ -113,10 +114,68 @@ void OBSPropertiesView::ReloadProperties()
 
 #define NO_PROPERTIES_STRING QObject::tr("Basic.PropertiesWindow.NoProperties")
 
+/* Line edits inside spin boxes and combo boxes, and combo box popups, are
+ * reported through their owner. */
+static bool IsPartOfCompositeControl(const QWidget *widget)
+{
+	for (const QWidget *parent = widget->parentWidget(); parent; parent = parent->parentWidget()) {
+		if (qobject_cast<const QAbstractSpinBox *>(parent) || qobject_cast<const QComboBox *>(parent)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/* Dynamic property naming the obs property a widget belongs to, used to keep
+ * focus on the same property when the view is rebuilt. */
+static constexpr const char *propertyNameKey = "obsPropertyName";
+
+static QString GetFocusedPropertyName(QWidget *container, QWidget *focused)
+{
+	for (QWidget *widget = focused; widget && widget != container; widget = widget->parentWidget()) {
+		QVariant name = widget->property(propertyNameKey);
+		if (name.isValid()) {
+			return name.toString();
+		}
+	}
+	return {};
+}
+
+static QWidget *FindFocusTarget(QWidget *container, const QString &propertyName)
+{
+	QWidget *firstFocusable = nullptr;
+
+	for (QWidget *widget : container->findChildren<QWidget *>()) {
+		bool focusable = (widget->focusPolicy() & Qt::TabFocus) == Qt::TabFocus && widget->isEnabled() &&
+				 !widget->isHidden();
+		if (!focusable || IsPartOfCompositeControl(widget)) {
+			continue;
+		}
+
+		if (!propertyName.isEmpty() && widget->property(propertyNameKey).toString() == propertyName) {
+			return widget;
+		}
+		if (!firstFocusable) {
+			firstFocusable = widget;
+		}
+	}
+
+	return firstFocusable;
+}
+
 void OBSPropertiesView::RefreshProperties()
 {
 	int h, v, hend, vend;
 	GetScrollPos(h, v, hend, vend);
+
+	/* Rebuilding deletes the focused control. lastFocused only covers
+	 * rebuilds caused by the user changing a control, so remember which
+	 * property had focus for the other ones, e.g. sources updating their
+	 * own settings right after being created. Losing focus here leaves
+	 * screen reader users stranded. */
+	QWidget *focused = QApplication::focusWidget();
+	bool hadFocus = widget && focused && widget->isAncestorOf(focused);
+	QString focusedProperty = hadFocus ? GetFocusedPropertyName(widget, focused) : QString();
 
 	children.clear();
 	if (widget) {
@@ -156,6 +215,13 @@ void OBSPropertiesView::RefreshProperties()
 	if (lastWidget) {
 		lastWidget->setFocus(Qt::OtherFocusReason);
 		lastWidget = nullptr;
+	} else if (hadFocus) {
+		QWidget *target = FindFocusTarget(widget, focusedProperty);
+		if (target) {
+			target->setFocus(Qt::OtherFocusReason);
+		} else {
+			setFocus(Qt::OtherFocusReason);
+		}
 	}
 
 	if (hasNoProperties) {
@@ -1587,9 +1653,10 @@ static void UpdateRowAccessibility(QFormLayout *layout, int firstRow, obs_proper
 		CollectWidgets(layout->itemAt(row, QFormLayout::SpanningRole), widgets);
 
 		for (QWidget *widget : widgets) {
+			widget->setProperty(propertyNameKey, QT_UTF8(obs_property_name(property)));
+
 			bool focusable = (widget->focusPolicy() & Qt::TabFocus) == Qt::TabFocus;
-			QWidget *parent = widget->parentWidget();
-			bool internal = qobject_cast<QAbstractSpinBox *>(parent) || qobject_cast<QComboBox *>(parent);
+			bool internal = IsPartOfCompositeControl(widget);
 
 			if (!focusable || internal) {
 				continue;

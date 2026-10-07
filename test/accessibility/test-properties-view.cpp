@@ -8,6 +8,7 @@
 
 #include <QAccessible>
 #include <QApplication>
+#include <QComboBox>
 #include <QGroupBox>
 #include <QPushButton>
 
@@ -117,6 +118,56 @@ A11Y_TEST(PropertiesViewGroupsUseTheirTitle)
 	}
 
 	A11Y_CHECK(groupCount == 2);
+
+	delete view;
+}
+
+/* Sources such as video capture devices update their own settings right after
+ * being created, which rebuilds the view while the user is in it. Focus must
+ * stay on the same property instead of being lost. */
+A11Y_TEST(PropertiesViewKeepsFocusWhenReloaded)
+{
+	OBSPropertiesView *view = CreateView();
+	view->show();
+
+	/* The minimal platform used by the tests does not activate windows on
+	 * request, which focus needs. */
+	QT_WARNING_PUSH
+	QT_WARNING_DISABLE_DEPRECATED
+	QApplication::setActiveWindow(view);
+	QT_WARNING_POP
+	QApplication::processEvents();
+
+	auto findDeviceCombo = [view]() -> QComboBox * {
+		for (QComboBox *combo : view->findChildren<QComboBox *>()) {
+			if (combo->accessibleName() == "Device") {
+				return combo;
+			}
+		}
+		return nullptr;
+	};
+
+	QComboBox *focusTarget = findDeviceCombo();
+	A11Y_CHECK_MESSAGE(focusTarget, "no combo box named after the \"Device\" property");
+	if (!focusTarget) {
+		delete view;
+		return;
+	}
+
+	focusTarget->setFocus(Qt::OtherFocusReason);
+	QApplication::processEvents();
+	A11Y_CHECK_MESSAGE(QApplication::focusWidget() == focusTarget, "could not focus the test control");
+
+	view->ReloadProperties();
+	QApplication::processEvents();
+	QApplication::processEvents();
+
+	QWidget *focused = QApplication::focusWidget();
+	A11Y_CHECK_MESSAGE(focused, "focus was lost after reloading");
+	if (focused) {
+		A11Y_CHECK_MESSAGE(focused == findDeviceCombo(), std::string("focus moved to a ") +
+									 focused->metaObject()->className());
+	}
 
 	delete view;
 }
