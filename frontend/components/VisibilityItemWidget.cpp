@@ -2,6 +2,10 @@
 
 #include <components/OBSSourceLabel.hpp>
 
+#include <OBSApp.hpp>
+
+#include <qt-wrappers.hpp>
+
 #include <QCheckBox>
 #include <QHBoxLayout>
 
@@ -36,6 +40,32 @@ VisibilityItemWidget::VisibilityItemWidget(obs_source_t *source_)
 		blog(LOG_INFO, "User set filter '%s' on source '%s' to %s", filterName, sourceName,
 		     visible ? "enabled" : "disabled");
 	});
+
+	connect(vis, &QCheckBox::toggled, this, &VisibilityItemWidget::UpdateAccessibleText);
+	connect(label, &OBSSourceLabel::renamed, this, &VisibilityItemWidget::UpdateAccessibleText,
+		Qt::QueuedConnection);
+}
+
+/* The item widget is drawn over an empty list item, which is all a screen
+ * reader sees. Give the item the filter's name and state as its text. */
+void VisibilityItemWidget::SetListItem(QListWidget *list_, QListWidgetItem *item)
+{
+	list = list_;
+	index = QPersistentModelIndex(list->indexFromItem(item));
+	UpdateAccessibleText();
+}
+
+void VisibilityItemWidget::UpdateAccessibleText()
+{
+	QString name = QT_UTF8(obs_source_get_name(source));
+	const char *stateKey = vis->isChecked() ? "Accessibility.Filters.ItemEnabled"
+						 : "Accessibility.Filters.ItemDisabled";
+
+	vis->setAccessibleName(QTStr("Accessibility.Filters.EnableFilter").arg(name));
+
+	if (list && index.isValid()) {
+		list->model()->setData(index, QTStr(stateKey).arg(name), Qt::AccessibleTextRole);
+	}
 }
 
 void VisibilityItemWidget::OBSSourceEnabled(void *param, calldata_t *data)
@@ -75,4 +105,5 @@ void SetupVisibilityItem(QListWidget *list, QListWidgetItem *item, obs_source_t 
 	VisibilityItemWidget *baseWidget = new VisibilityItemWidget(source);
 
 	list->setItemWidget(item, baseWidget);
+	baseWidget->SetListItem(list, item);
 }

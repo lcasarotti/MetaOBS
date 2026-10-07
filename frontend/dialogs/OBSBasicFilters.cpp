@@ -17,6 +17,7 @@
 
 #include "OBSBasicFilters.hpp"
 
+#include <accessibility/Announcer.hpp>
 #include <components/VisibilityItemDelegate.hpp>
 #include <components/VisibilityItemWidget.hpp>
 #include <dialogs/NameDialog.hpp>
@@ -73,6 +74,30 @@ OBSBasicFilters::OBSBasicFilters(QWidget *parent, OBSSource source_)
 	addAction(ui->actionRemoveFilter);
 	addAction(ui->actionMoveUp);
 	addAction(ui->actionMoveDown);
+
+	/* Created once, so the shortcuts work before the context menu has been
+	 * opened. */
+	copyFilterAction = new QAction(QTStr("Copy"), this);
+	copyFilterAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_C));
+	connect(copyFilterAction, &QAction::triggered, this, &OBSBasicFilters::CopyFilter);
+	ui->effectWidget->addAction(copyFilterAction);
+	ui->asyncWidget->addAction(copyFilterAction);
+
+	pasteFilterAction = new QAction(QTStr("Paste"), this);
+	pasteFilterAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_V));
+	connect(pasteFilterAction, &QAction::triggered, this, &OBSBasicFilters::PasteFilter);
+	ui->effectWidget->addAction(pasteFilterAction);
+	ui->asyncWidget->addAction(pasteFilterAction);
+
+	/* The enable checkbox lives in the item widget, which keyboard users
+	 * cannot reach, so Space toggles the current filter. */
+	toggleFilterAction = new QAction(QTStr("Accessibility.Filters.Enabled"), this);
+	toggleFilterAction->setCheckable(true);
+	toggleFilterAction->setShortcut(QKeySequence(Qt::Key_Space));
+	toggleFilterAction->setShortcutContext(Qt::WidgetShortcut);
+	connect(toggleFilterAction, &QAction::triggered, this, &OBSBasicFilters::ToggleCurrentFilter);
+	ui->effectFilters->addAction(toggleFilterAction);
+	ui->asyncFilters->addAction(toggleFilterAction);
 
 	installEventFilter(CreateShortcutFilter());
 
@@ -871,23 +896,44 @@ void OBSBasicFilters::CustomContextMenu(const QPoint &pos, bool async)
 		popup.addAction(ui->actionRemoveFilter);
 		popup.addSeparator();
 
-		QAction *copyAction = new QAction(QTStr("Copy"));
-		connect(copyAction, &QAction::triggered, this, &OBSBasicFilters::CopyFilter);
-		copyAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_C));
-		ui->effectWidget->addAction(copyAction);
-		ui->asyncWidget->addAction(copyAction);
-		popup.addAction(copyAction);
+		OBSSource filter = item->data(Qt::UserRole).value<OBSSource>();
+		toggleFilterAction->setChecked(obs_source_enabled(filter));
+		popup.addAction(toggleFilterAction);
+		popup.addSeparator();
+
+		popup.addAction(copyFilterAction);
 	}
 
-	QAction *pasteAction = new QAction(QTStr("Paste"));
-	pasteAction->setEnabled(main->copyFilter);
-	connect(pasteAction, &QAction::triggered, this, &OBSBasicFilters::PasteFilter);
-	pasteAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_V));
-	ui->effectWidget->addAction(pasteAction);
-	ui->asyncWidget->addAction(pasteAction);
-	popup.addAction(pasteAction);
+	pasteFilterAction->setEnabled(main->copyFilter);
+	popup.addAction(pasteFilterAction);
 
-	popup.exec(QCursor::pos());
+	/* pos is in viewport coordinates, and points at the current item when
+	 * the menu is opened from the keyboard. */
+	popup.exec(list->viewport()->mapToGlobal(pos));
+
+	pasteFilterAction->setEnabled(true);
+}
+
+void OBSBasicFilters::ToggleCurrentFilter()
+{
+	QListWidget *list = ui->asyncFilters->hasFocus() ? ui->asyncFilters : ui->effectFilters;
+	QListWidgetItem *item = list->currentItem();
+	if (!item) {
+		return;
+	}
+
+	OBSSource filter = item->data(Qt::UserRole).value<OBSSource>();
+	bool enabled = !obs_source_enabled(filter);
+	obs_source_set_enabled(filter, enabled);
+
+	const char *filterName = obs_source_get_name(filter);
+	blog(LOG_INFO, "User set filter '%s' on source '%s' to %s", filterName, obs_source_get_name(source),
+	     enabled ? "enabled" : "disabled");
+
+	if (auto announcer = OBS::Accessibility::Announcer::Get()) {
+		const char *key = enabled ? "Accessibility.Filters.ItemEnabled" : "Accessibility.Filters.ItemDisabled";
+		announcer->Announce(QTStr(key).arg(QT_UTF8(filterName)), OBS::Accessibility::Priority::High);
+	}
 }
 
 void OBSBasicFilters::EditItem(QListWidgetItem *item, bool async)

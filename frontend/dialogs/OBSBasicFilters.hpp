@@ -71,6 +71,12 @@ private:
 
 	bool editActive = false;
 
+	QAction *copyFilterAction = nullptr;
+	QAction *pasteFilterAction = nullptr;
+	QAction *toggleFilterAction = nullptr;
+
+	void ToggleCurrentFilter();
+
 private slots:
 	void AddFilter(OBSSource filter, bool focus = true);
 	void RemoveFilter(OBSSource filter);
