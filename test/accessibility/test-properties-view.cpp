@@ -9,6 +9,7 @@
 #include <QAccessible>
 #include <QApplication>
 #include <QGroupBox>
+#include <QPushButton>
 
 #include <iostream>
 
@@ -116,6 +117,24 @@ A11Y_TEST(PropertiesViewGroupsUseTheirTitle)
 	}
 
 	A11Y_CHECK(groupCount == 2);
+
+	delete view;
+}
+
+A11Y_TEST(PropertiesViewColorButtonIncludesValue)
+{
+	OBSPropertiesView *view = CreateView();
+
+	bool found = false;
+	for (QPushButton *button : view->findChildren<QPushButton *>()) {
+		QString name = button->accessibleName();
+		if (name.startsWith("Text color: ")) {
+			found = true;
+			A11Y_CHECK_MESSAGE(name.contains('#'), "color button is named \"" + name.toStdString() + "\"");
+		}
+	}
+
+	A11Y_CHECK_MESSAGE(found, "no button named after the \"Text color\" property");
 
 	delete view;
 }

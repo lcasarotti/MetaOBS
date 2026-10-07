@@ -25,6 +25,7 @@
 #include <QObject>
 #include <QDesktopServices>
 #include <QUuid>
+#include <QTextDocumentFragment>
 
 #include "DoubleSpinBox.hpp"
 #include "SpinBox.hpp"
@@ -710,11 +711,14 @@ QWidget *OBSPropertiesView::AddList(obs_property_t *prop, bool &warning)
 	return combo;
 }
 
-static void NewButton(QLayout *layout, WidgetInfo *info, const char *themeIcon, void (WidgetInfo::*method)())
+static void NewButton(QLayout *layout, WidgetInfo *info, const char *themeIcon, const QString &text,
+		      void (WidgetInfo::*method)())
 {
 	QPushButton *button = new QPushButton();
 	button->setProperty("class", "btn-tool " + QString(themeIcon));
 	button->setFlat(true);
+	button->setAccessibleName(text);
+	button->setToolTip(text);
 
 	QObject::connect(button, &QPushButton::clicked, info, method);
 
@@ -758,11 +762,12 @@ void OBSPropertiesView::AddEditableList(obs_property_t *prop, QFormLayout *layou
 	connect(list->model(), &QAbstractItemModel::rowsMoved, info, [info]() { info->EditableListChanged(); });
 
 	QVBoxLayout *sideLayout = new QVBoxLayout();
-	NewButton(sideLayout, info, "icon-plus", &WidgetInfo::EditListAdd);
-	NewButton(sideLayout, info, "icon-trash", &WidgetInfo::EditListRemove);
-	NewButton(sideLayout, info, "icon-gear", &WidgetInfo::EditListEdit);
-	NewButton(sideLayout, info, "icon-up", &WidgetInfo::EditListUp);
-	NewButton(sideLayout, info, "icon-down", &WidgetInfo::EditListDown);
+	NewButton(sideLayout, info, "icon-plus", tr("Add"), &WidgetInfo::EditListAdd);
+	NewButton(sideLayout, info, "icon-trash", tr("Remove"), &WidgetInfo::EditListRemove);
+	NewButton(sideLayout, info, "icon-gear", tr("Accessibility.PropertiesView.EditEntry"),
+		  &WidgetInfo::EditListEdit);
+	NewButton(sideLayout, info, "icon-up", tr("MoveUp"), &WidgetInfo::EditListUp);
+	NewButton(sideLayout, info, "icon-down", tr("MoveDown"), &WidgetInfo::EditListDown);
 	sideLayout->addStretch(0);
 
 	QHBoxLayout *subLayout = new QHBoxLayout();
@@ -782,6 +787,23 @@ QWidget *OBSPropertiesView::AddButton(obs_property_t *prop)
 	QPushButton *button = new QPushButton(QT_UTF8(desc));
 	button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum);
 	return NewWidget(prop, button, &QPushButton::clicked);
+}
+
+/* Color and font values are shown in a label next to a "Select" button. The
+ * label cannot take focus, so the button's accessible name carries the
+ * property name and the current value. */
+static void SetValueButton(QLabel *valueLabel, QPushButton *button)
+{
+	valueLabel->setProperty("valueButton", QVariant::fromValue<QObject *>(button));
+	button->setAccessibleDescription(button->text());
+}
+
+static void UpdateValueButtonName(QLabel *valueLabel, const char *description)
+{
+	QPushButton *button = qobject_cast<QPushButton *>(valueLabel->property("valueButton").value<QObject *>());
+	if (button) {
+		button->setAccessibleName(QString("%1: %2").arg(QT_UTF8(description), valueLabel->text().trimmed()));
+	}
 }
 
 void OBSPropertiesView::AddColorInternal(obs_property_t *prop, QFormLayout *layout, QLabel *&label, bool supportAlpha)
@@ -824,6 +846,9 @@ void OBSPropertiesView::AddColorInternal(obs_property_t *prop, QFormLayout *layo
 
 	subLayout->addWidget(colorLabel);
 	subLayout->addWidget(button);
+
+	SetValueButton(colorLabel, button);
+	UpdateValueButtonName(colorLabel, obs_property_description(prop));
 
 	WidgetInfo *info = new WidgetInfo(this, prop, colorLabel);
 	connect(button, &QPushButton::clicked, info, &WidgetInfo::ControlChanged);
@@ -914,6 +939,9 @@ void OBSPropertiesView::AddFont(obs_property_t *prop, QFormLayout *layout, QLabe
 
 	subLayout->addWidget(fontLabel);
 	subLayout->addWidget(button);
+
+	SetValueButton(fontLabel, button);
+	UpdateValueButtonName(fontLabel, obs_property_description(prop));
 
 	WidgetInfo *info = new WidgetInfo(this, prop, fontLabel);
 	connect(button, &QPushButton::clicked, info, &WidgetInfo::ControlChanged);
@@ -1494,7 +1522,6 @@ void OBSPropertiesView::AddGroup(obs_property_t *prop, QFormLayout *layout)
 	QGroupBox *groupBox = new QGroupBox(QT_UTF8(desc));
 	groupBox->setCheckable(type == OBS_GROUP_CHECKABLE);
 	groupBox->setChecked(groupBox->isCheckable() ? val : true);
-	groupBox->setAccessibleName("group");
 	groupBox->setEnabled(obs_property_enabled(prop));
 
 	// Create Layout and build content
@@ -1520,6 +1547,85 @@ void OBSPropertiesView::AddGroup(obs_property_t *prop, QFormLayout *layout)
 	connect(groupBox, &QGroupBox::toggled, info, &WidgetInfo::ControlChanged);
 }
 
+static QString ToAccessibleText(const char *text)
+{
+	QString plainText = QT_UTF8(text);
+	if (Qt::mightBeRichText(plainText)) {
+		plainText = QTextDocumentFragment::fromHtml(plainText).toPlainText();
+	}
+	return plainText.simplified();
+}
+
+static void CollectWidgets(QLayoutItem *item, QList<QWidget *> &widgets)
+{
+	if (!item) {
+		return;
+	}
+
+	if (QWidget *widget = item->widget()) {
+		widgets.append(widget);
+		widgets.append(widget->findChildren<QWidget *>());
+	} else if (QLayout *layout = item->layout()) {
+		for (int i = 0; i < layout->count(); i++) {
+			CollectWidgets(layout->itemAt(i), widgets);
+		}
+	}
+}
+
+/* A property's label is attached to a layout, or wrapped together with a help
+ * icon, so screen readers cannot associate it with the property's controls.
+ * Name the controls in the property's rows after the property instead, and
+ * expose the long description, which is otherwise only a tooltip. */
+static void UpdateRowAccessibility(QFormLayout *layout, int firstRow, obs_property_t *property)
+{
+	QString name = ToAccessibleText(obs_property_description(property));
+	QString longDescription = ToAccessibleText(obs_property_long_description(property));
+
+	for (int row = firstRow; row < layout->rowCount(); row++) {
+		QList<QWidget *> widgets;
+		CollectWidgets(layout->itemAt(row, QFormLayout::FieldRole), widgets);
+		CollectWidgets(layout->itemAt(row, QFormLayout::SpanningRole), widgets);
+
+		for (QWidget *widget : widgets) {
+			bool focusable = (widget->focusPolicy() & Qt::TabFocus) == Qt::TabFocus;
+			QWidget *parent = widget->parentWidget();
+			bool internal = qobject_cast<QAbstractSpinBox *>(parent) || qobject_cast<QComboBox *>(parent);
+
+			if (!focusable || internal) {
+				continue;
+			}
+
+			QAbstractButton *button = qobject_cast<QAbstractButton *>(widget);
+			if (button && button->text().isEmpty()) {
+				/* Icon-only buttons are named where they are created. */
+				continue;
+			}
+
+			if (qobject_cast<QRadioButton *>(widget)) {
+				if (widget->accessibleDescription().isEmpty()) {
+					widget->setAccessibleDescription(name);
+				}
+				continue;
+			}
+
+			if (button) {
+				bool describesProperty = button->text() == name || qobject_cast<QCheckBox *>(widget);
+				if (widget->accessibleDescription().isEmpty()) {
+					widget->setAccessibleDescription(describesProperty ? longDescription : name);
+				}
+				continue;
+			}
+
+			if (widget->accessibleName().isEmpty() && !name.isEmpty()) {
+				widget->setAccessibleName(name);
+			}
+			if (widget->accessibleDescription().isEmpty() && !longDescription.isEmpty()) {
+				widget->setAccessibleDescription(longDescription);
+			}
+		}
+	}
+}
+
 void OBSPropertiesView::AddProperty(obs_property_t *property, QFormLayout *layout)
 {
 	const char *name = obs_property_name(property);
@@ -1528,6 +1634,8 @@ void OBSPropertiesView::AddProperty(obs_property_t *property, QFormLayout *layou
 	if (!obs_property_visible(property)) {
 		return;
 	}
+
+	int firstRow = layout->rowCount();
 
 	QLabel *label = nullptr;
 	QWidget *widget = nullptr;
@@ -1600,6 +1708,7 @@ void OBSPropertiesView::AddProperty(obs_property_t *property, QFormLayout *layou
 	}
 
 	if (!widget) {
+		UpdateRowAccessibility(layout, firstRow, property);
 		return;
 	}
 
@@ -1629,6 +1738,7 @@ void OBSPropertiesView::AddProperty(obs_property_t *property, QFormLayout *layou
 	}
 
 	layout->addRow(leftWidget, widget);
+	UpdateRowAccessibility(layout, firstRow, property);
 
 	if (!lastFocused.empty()) {
 		if (lastFocused.compare(name) == 0) {
@@ -1903,6 +2013,7 @@ bool WidgetInfo::ColorChangedInternal(const char *setting, bool supportAlpha)
 
 	QLabel *label = static_cast<QLabel *>(widget);
 	label->setText(color.name(format));
+	UpdateValueButtonName(label, desc);
 	QPalette palette = QPalette(color);
 	label->setPalette(palette);
 	label->setStyleSheet(QString("background-color :%1; color: %2;")
@@ -1967,6 +2078,7 @@ bool WidgetInfo::FontChanged(const char *setting)
 	MakeQFont(font_obj, labelFont, true);
 	label->setFont(labelFont);
 	label->setText(QString("%1 %2").arg(font.family(), font.styleName()));
+	UpdateValueButtonName(label, obs_property_description(property));
 
 	obs_data_set_obj(view->settings, setting, font_obj);
 	return true;
