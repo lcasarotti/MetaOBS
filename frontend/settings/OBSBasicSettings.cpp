@@ -2721,7 +2721,7 @@ static inline void LayoutHotkey(OBSBasicSettings *settings, obs_hotkey_id id, ob
 	}
 
 	hw->label = label;
-	hw->setAccessibleName(text);
+	hw->SetHotkeyDescription(text);
 	label->widget = hw;
 
 	fun(key, label, hw);

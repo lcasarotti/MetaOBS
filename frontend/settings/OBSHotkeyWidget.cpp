@@ -150,6 +150,7 @@ void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
 	}
 
 	layout()->insertLayout(idx, subLayout);
+	UpdateAccessibleNames();
 
 	QObject::connect(revert, &QPushButton::clicked, edit, &OBSHotkeyEdit::ResetKey);
 	QObject::connect(clear, &QPushButton::clicked, edit, &OBSHotkeyEdit::ClearKey);
@@ -182,7 +183,42 @@ void OBSHotkeyWidget::RemoveEdit(size_t idx, bool signal)
 		removeButtons.front()->setEnabled(false);
 	}
 
+	UpdateAccessibleNames();
+
 	emit KeyChanged();
+}
+
+void OBSHotkeyWidget::SetHotkeyDescription(const QString &description)
+{
+	hotkeyDescription = description;
+	setAccessibleName(description);
+	UpdateAccessibleNames();
+}
+
+/* The label of a hotkey row is associated with this container, not with the
+ * key edits, and the buttons next to each edit only show an icon. Name the
+ * edits after the hotkey and the buttons after their tooltips. */
+void OBSHotkeyWidget::UpdateAccessibleNames()
+{
+	for (int row = 0; row < layout()->count(); row++) {
+		QLayout *rowLayout = layout()->itemAt(row)->layout();
+		if (!rowLayout) {
+			continue;
+		}
+
+		QString rowName = row == 0 ? hotkeyDescription
+					   : QTStr("Accessibility.Hotkeys.AdditionalBinding").arg(hotkeyDescription).arg(row + 1);
+
+		for (int i = 0; i < rowLayout->count(); i++) {
+			QWidget *widget = rowLayout->itemAt(i)->widget();
+			if (qobject_cast<OBSHotkeyEdit *>(widget)) {
+				widget->setAccessibleName(rowName);
+			} else if (qobject_cast<QPushButton *>(widget)) {
+				widget->setAccessibleName(widget->toolTip());
+				widget->setAccessibleDescription(rowName);
+			}
+		}
+	}
 }
 
 void OBSHotkeyWidget::BindingsChanged(void *data, calldata_t *param)

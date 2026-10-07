@@ -76,7 +76,13 @@ public:
 	void enterEvent(QEnterEvent *event) override;
 	void leaveEvent(QEvent *event) override;
 
+	void SetHotkeyDescription(const QString &description);
+
 private:
+	QString hotkeyDescription;
+
+	void UpdateAccessibleNames();
+
 	void AddEdit(obs_key_combination combo, int idx = -1);
 	void RemoveEdit(size_t idx, bool signal = true);
 

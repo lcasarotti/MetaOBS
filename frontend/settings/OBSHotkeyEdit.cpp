@@ -19,6 +19,7 @@
 #include "OBSBasicSettings.hpp"
 
 #include <OBSApp.hpp>
+#include <accessibility/Announcer.hpp>
 
 #include <qt-wrappers.hpp>
 #include <util/dstr.hpp>
@@ -153,6 +154,18 @@ void OBSHotkeyEdit::HandleNewKey(obs_key_combination_t new_key)
 	emit KeyChanged(key);
 
 	RenderKey();
+
+	/* Screen readers do not read the new text of a focused line edit, so
+	 * announce the captured combination. Listeners of KeyChanged have
+	 * already checked it for duplicates. */
+	auto announcer = OBS::Accessibility::Announcer::Get();
+	if (announcer && hasFocus()) {
+		QString announcement = text();
+		if (hasDuplicate) {
+			announcement += ". " + QTStr("Basic.Settings.Hotkeys.DuplicateWarning");
+		}
+		announcer->Announce(announcement, OBS::Accessibility::Priority::High);
+	}
 }
 
 void OBSHotkeyEdit::RenderKey()
@@ -185,6 +198,8 @@ void OBSHotkeyEdit::ClearKey()
 
 void OBSHotkeyEdit::UpdateDuplicationState()
 {
+	setAccessibleDescription(hasDuplicate ? QTStr("Basic.Settings.Hotkeys.DuplicateWarning") : QString());
+
 	if (!dupeIcon && !hasDuplicate) {
 		return;
 	}
