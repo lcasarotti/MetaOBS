@@ -42,7 +42,7 @@ QRect AccessibleAlignmentCell::rect() const
 QString AccessibleAlignmentCell::text(QAccessible::Text text) const
 {
 	if (text == QAccessible::Name || text == QAccessible::Value) {
-		return QString(indexToStrings[index_].data());
+		return QTStr(indexToStrings[index_].data());
 	}
 	return QString();
 }

@@ -4,18 +4,20 @@
 
 class VolumeSlider;
 
-class VolumeAccessibleInterface : public QAccessibleWidget {
+class VolumeAccessibleInterface : public QAccessibleWidget, public QAccessibleValueInterface {
 
 public:
 	VolumeAccessibleInterface(QWidget *w);
 
-	QVariant currentValue() const;
-	void setCurrentValue(const QVariant &value);
+	QVariant currentValue() const override;
+	void setCurrentValue(const QVariant &value) override;
 
-	QVariant maximumValue() const;
-	QVariant minimumValue() const;
+	QVariant maximumValue() const override;
+	QVariant minimumValue() const override;
 
-	QVariant minimumStepSize() const;
+	QVariant minimumStepSize() const override;
+
+	void *interface_cast(QAccessible::InterfaceType type) override;
 
 private:
 	VolumeSlider *slider() const;
