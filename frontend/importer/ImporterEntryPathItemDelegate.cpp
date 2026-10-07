@@ -59,12 +59,14 @@ QWidget *ImporterEntryPathItemDelegate::createEditor(QWidget *parent, const QSty
 	text->setObjectName(QStringLiteral("text"));
 	text->setSizePolicy(QSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding,
 					QSizePolicy::ControlType::LineEdit));
+	text->setAccessibleName(index.model()->headerData(index.column(), Qt::Horizontal).toString());
 	layout->addWidget(text);
 
 	QObject::connect(text, &QLineEdit::editingFinished, this, &ImporterEntryPathItemDelegate::updateText);
 
 	QToolButton *browseButton = new QToolButton();
 	browseButton->setText("...");
+	browseButton->setAccessibleName(QTStr("Browse"));
 	browseButton->setSizePolicy(buttonSizePolicy);
 	layout->addWidget(browseButton);
 
@@ -75,6 +77,7 @@ QWidget *ImporterEntryPathItemDelegate::createEditor(QWidget *parent, const QSty
 	if (!empty) {
 		QToolButton *clearButton = new QToolButton();
 		clearButton->setText("X");
+		clearButton->setAccessibleName(QTStr("Clear"));
 		clearButton->setSizePolicy(buttonSizePolicy);
 		layout->addWidget(clearButton);
 

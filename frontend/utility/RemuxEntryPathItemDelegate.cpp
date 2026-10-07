@@ -76,12 +76,14 @@ QWidget *RemuxEntryPathItemDelegate::createEditor(QWidget *parent, const QStyleO
 		text->setObjectName(QStringLiteral("text"));
 		text->setSizePolicy(QSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding,
 						QSizePolicy::ControlType::LineEdit));
+		text->setAccessibleName(index.model()->headerData(index.column(), Qt::Horizontal).toString());
 		layout->addWidget(text);
 
 		QObject::connect(text, &QLineEdit::editingFinished, this, &RemuxEntryPathItemDelegate::updateText);
 
 		QToolButton *browseButton = new QToolButton();
 		browseButton->setText("...");
+		browseButton->setAccessibleName(QTStr("Browse"));
 		browseButton->setSizePolicy(buttonSizePolicy);
 		layout->addWidget(browseButton);
 
@@ -92,6 +94,7 @@ QWidget *RemuxEntryPathItemDelegate::createEditor(QWidget *parent, const QStyleO
 		if (!isOutput && state != RemuxEntryState::Empty) {
 			QToolButton *clearButton = new QToolButton();
 			clearButton->setText("X");
+			clearButton->setAccessibleName(QTStr("Clear"));
 			clearButton->setSizePolicy(buttonSizePolicy);
 			layout->addWidget(clearButton);
 

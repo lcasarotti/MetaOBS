@@ -31,7 +31,7 @@ enum MissingFilesRole { EntryStateRole = Qt::UserRole, NewPathsToProcessRole };
 MissingFilesPathItemDelegate::MissingFilesPathItemDelegate() : QStyledItemDelegate() {}
 
 QWidget *MissingFilesPathItemDelegate::createEditor(QWidget *parent, const QStyleOptionViewItem & /* option */,
-						    const QModelIndex &) const
+						    const QModelIndex &index) const
 {
 	QSizePolicy buttonSizePolicy(QSizePolicy::Policy::Minimum, QSizePolicy::Policy::Expanding,
 				     QSizePolicy::ControlType::PushButton);
@@ -54,10 +54,12 @@ QWidget *MissingFilesPathItemDelegate::createEditor(QWidget *parent, const QStyl
 	text->setObjectName(QStringLiteral("text"));
 	text->setSizePolicy(QSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding,
 					QSizePolicy::ControlType::LineEdit));
+	text->setAccessibleName(index.model()->headerData(index.column(), Qt::Horizontal).toString());
 	layout->addWidget(text);
 
 	QToolButton *browseButton = new QToolButton();
 	browseButton->setText("...");
+	browseButton->setAccessibleName(QTStr("Browse"));
 	browseButton->setSizePolicy(buttonSizePolicy);
 	layout->addWidget(browseButton);
 
@@ -68,6 +70,7 @@ QWidget *MissingFilesPathItemDelegate::createEditor(QWidget *parent, const QStyl
 	icon.addFile(QString::fromUtf8(":/res/images/close.svg"), QSize(), QIcon::Mode::Normal, QIcon::State::Off);
 	clearButton->setIcon(icon);
 	clearButton->setProperty("class", "icon-close");
+	clearButton->setAccessibleName(QTStr("Clear"));
 	clearButton->setSizePolicy(buttonSizePolicy);
 	layout->addWidget(clearButton);
 
