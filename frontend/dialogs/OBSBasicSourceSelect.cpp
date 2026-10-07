@@ -813,9 +813,13 @@ void OBSBasicSourceSelect::createNew()
 	undo_s.add_action(QTStr("Undo.Add").arg(QString::fromStdString(newName)), undo, redo,
 			  std::string(obs_source_get_uuid(newSource)), std::string(obs_data_get_json(wrapper)));
 
-	main->CreatePropertiesWindow(newSource);
-
 	close();
+
+	/* Open the properties once this dialog has closed. Otherwise closing it
+	 * can activate the main window instead of the properties window, which
+	 * leaves screen reader users without focus. */
+	QMetaObject::invokeMethod(
+		main, [main, newSource]() { main->CreatePropertiesWindow(newSource); }, Qt::QueuedConnection);
 }
 
 void OBSBasicSourceSelect::addExisting(const std::string &uuid, bool visible)

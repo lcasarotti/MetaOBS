@@ -466,6 +466,8 @@ bool OBSBasicProperties::nativeEvent(const QByteArray &, void *message, qintptr 
 void OBSBasicProperties::Init()
 {
 	show();
+	raise();
+	activateWindow();
 }
 
 int OBSBasicProperties::CheckSettings()
