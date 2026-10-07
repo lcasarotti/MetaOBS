@@ -25,6 +25,7 @@
 
 class OBSBasic;
 class OBSEventFilter;
+class QPushButton;
 
 class OBSBasicInteraction : public QDialog {
 	Q_OBJECT
@@ -37,6 +38,7 @@ private:
 	OBSSignal removedSignal;
 	OBSSignal renamedSignal;
 	std::unique_ptr<OBSEventFilter> eventFilter;
+	QPushButton *closeButton = nullptr;
 
 	static void SourceRemoved(void *data, calldata_t *params);
 	static void SourceRenamed(void *data, calldata_t *params);

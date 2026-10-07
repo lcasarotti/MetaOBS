@@ -25,6 +25,7 @@
 #include <qt-wrappers.hpp>
 
 #include <QInputEvent>
+#include <QPushButton>
 
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
@@ -65,6 +66,14 @@ OBSBasicInteraction::OBSBasicInteraction(QWidget *parent, OBSSource source_)
 
 	const char *name = obs_source_get_name(source);
 	setWindowTitle(QTStr("Basic.InteractionWindow").arg(QT_UTF8(name)));
+
+	ui->preview->setAccessibleName(QT_UTF8(name));
+	ui->preview->setAccessibleDescription(QTStr("Accessibility.Interaction.Description"));
+
+	closeButton = new QPushButton(QTStr("Close"), this);
+	closeButton->setAutoDefault(false);
+	connect(closeButton, &QPushButton::clicked, this, &OBSBasicInteraction::close);
+	ui->verticalLayout->addWidget(closeButton, 0, Qt::AlignRight);
 
 	auto addDrawCallback = [this]() {
 		obs_display_add_draw_callback(ui->preview->GetDisplay(), OBSBasicInteraction::DrawPreview, this);
@@ -380,6 +389,22 @@ bool OBSBasicInteraction::HandleFocusEvent(QFocusEvent *event)
 
 bool OBSBasicInteraction::HandleKeyEvent(QKeyEvent *event)
 {
+	/* Every other key goes to the source, so keyboard users need a way out
+	 * that sources do not use: Ctrl+Tab moves to the Close button and
+	 * Shift+Escape closes the window. */
+	bool ctrlTab = (event->key() == Qt::Key_Tab || event->key() == Qt::Key_Backtab) &&
+		       (event->modifiers() & Qt::ControlModifier);
+	bool shiftEscape = event->key() == Qt::Key_Escape && (event->modifiers() & Qt::ShiftModifier);
+
+	if (ctrlTab || shiftEscape) {
+		if (event->type() == QEvent::KeyPress && ctrlTab) {
+			closeButton->setFocus(Qt::TabFocusReason);
+		} else if (event->type() == QEvent::KeyPress) {
+			close();
+		}
+		return true;
+	}
+
 	struct obs_key_event keyEvent;
 
 	QByteArray text = event->text().toUtf8();
