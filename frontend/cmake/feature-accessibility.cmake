@@ -1,0 +1,18 @@
+target_sources(
+  obs-studio
+  PRIVATE
+    accessibility/A11yAudit.cpp
+    accessibility/A11yAudit.hpp
+    accessibility/AccessibilityModule.cpp
+    accessibility/AccessibilityModule.hpp
+    accessibility/AccessibilitySettingsWidget.cpp
+    accessibility/AccessibilitySettingsWidget.hpp
+    accessibility/AccessibleSettings.cpp
+    accessibility/AccessibleSettings.hpp
+    accessibility/Announcer.cpp
+    accessibility/Announcer.hpp
+    accessibility/NvdaController.cpp
+    accessibility/NvdaController.hpp
+    accessibility/OutputAnnouncements.cpp
+    accessibility/OutputAnnouncements.hpp
+)

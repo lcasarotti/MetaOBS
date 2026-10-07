@@ -17,6 +17,7 @@
 
 #include "OBSApp.hpp"
 
+#include <accessibility/AccessibilityModule.hpp>
 #include <components/Multiview.hpp>
 #include <dialogs/LogUploadDialog.hpp>
 #include <plugin-manager/PluginManager.hpp>
@@ -1138,6 +1139,7 @@ void OBSApp::AppInit()
 	if (!InitLocale()) {
 		throw "Failed to load locale";
 	}
+	OBS::Accessibility::LoadLocale();
 	if (!InitTheme()) {
 		throw "Failed to load theme";
 	}
@@ -1349,6 +1351,7 @@ bool OBSApp::OBSInit()
 	mainWindow->setAttribute(Qt::WA_DeleteOnClose, true);
 
 	mainWindow->OBSInit();
+	OBS::Accessibility::Initialize(static_cast<OBSBasic *>(mainWindow.data()));
 
 	connect(OBSBasic::Get(), &OBSBasic::mainWindowClosed, crashHandler_.get(),
 		&OBS::CrashHandler::applicationShutdownHandler);

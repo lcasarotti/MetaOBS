@@ -1,5 +1,6 @@
 #include "OBSBasicSettings.hpp"
 
+#include <accessibility/AccessibilitySettingsWidget.hpp>
 #include <widgets/OBSBasic.hpp>
 
 #include <QColorDialog>
@@ -53,6 +54,8 @@ void OBSBasicSettings::LoadA11ySettings(bool presetChange)
 		bool checked = config_get_bool(config, "Accessibility", "OverrideColors");
 
 		ui->colorsGroupBox->setChecked(checked);
+
+		accessibilitySettings->Load();
 	}
 
 	if (preset == COLOR_PRESET_DEFAULT) {
@@ -110,6 +113,8 @@ void OBSBasicSettings::SaveA11ySettings()
 	config_set_int(config, "Accessibility", "MixerGreenActive", mixerGreenActive);
 	config_set_int(config, "Accessibility", "MixerYellowActive", mixerYellowActive);
 	config_set_int(config, "Accessibility", "MixerRedActive", mixerRedActive);
+
+	accessibilitySettings->Save();
 
 	emit main->userSettingChanged("Accessibility", "SettingsChanged");
 }

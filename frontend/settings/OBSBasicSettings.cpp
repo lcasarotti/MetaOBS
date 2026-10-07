@@ -20,6 +20,7 @@
 #include "OBSHotkeyLabel.hpp"
 #include "OBSHotkeyWidget.hpp"
 
+#include <accessibility/AccessibilitySettingsWidget.hpp>
 #include <components/Multiview.hpp>
 #include <components/OBSSourceLabel.hpp>
 #include <components/SilentUpdateCheckBox.hpp>
@@ -700,6 +701,11 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 		&OBSBasicSettings::UpdateStreamDelayEstimate);
 	connect(ui->advOutTrack6Bitrate, &QComboBox::currentIndexChanged, this,
 		&OBSBasicSettings::UpdateStreamDelayEstimate);
+
+	accessibilitySettings = new OBS::Accessibility::AccessibilitySettingsWidget(ui->colorsGroupBox->parentWidget());
+	ui->verticalLayout_7->insertWidget(0, accessibilitySettings);
+	connect(accessibilitySettings, &OBS::Accessibility::AccessibilitySettingsWidget::changed, this,
+		&OBSBasicSettings::A11yChanged);
 
 	//Apply button disabled until change.
 	EnableApplyButton(false);

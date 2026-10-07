@@ -608,6 +608,7 @@ void OBSBasicStatusBar::showMessage(const QString &message, int timeout)
 	messageTimer->stop();
 
 	statusWidget->ui->message->setText(message);
+	emit messageChanged(message);
 
 	if (timeout) {
 		messageTimer->start(timeout);

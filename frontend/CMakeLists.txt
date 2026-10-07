@@ -45,6 +45,7 @@ target_link_libraries(
     OBS::qt-obs-spinbox
 )
 
+include(cmake/feature-accessibility.cmake)
 include(cmake/ui-components.cmake)
 include(cmake/ui-dialogs.cmake)
 include(cmake/ui-docks.cmake)

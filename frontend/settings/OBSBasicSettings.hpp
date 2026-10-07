@@ -35,6 +35,10 @@ class OBSPropertiesView;
 struct FFmpegFormat;
 struct OBSTheme;
 
+namespace OBS::Accessibility {
+class AccessibilitySettingsWidget;
+}
+
 std::string DeserializeConfigText(const char *value);
 
 class OBSBasicSettings : public QDialog {
@@ -86,6 +90,8 @@ private:
 	OBSTheme *savedTheme = nullptr;
 
 	std::vector<FFmpegFormat> formats;
+
+	OBS::Accessibility::AccessibilitySettingsWidget *accessibilitySettings = nullptr;
 
 	OBSPropertiesView *streamProperties = nullptr;
 	OBSPropertiesView *streamEncoderProps = nullptr;
