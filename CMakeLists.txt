@@ -34,4 +34,6 @@ add_subdirectory(test/test-input)
 
 add_subdirectory(frontend)
 
+add_subdirectory(test/accessibility)
+
 message_configuration()
