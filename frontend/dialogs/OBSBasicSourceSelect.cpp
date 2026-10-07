@@ -270,7 +270,8 @@ OBSBasicSourceSelect::OBSBasicSourceSelect(OBSBasic *parent, undo_stack &undo_s)
 	signalHandlers.emplace_back(obs_get_signal_handler(), "source_destroy", &OBSBasicSourceSelect::obsSourceRemoved,
 				    this);
 
-	connect(ui->sourceTypeList, &QListWidget::itemDoubleClicked, this, &OBSBasicSourceSelect::createNew);
+	/* Activation covers both double-click and Enter. */
+	connect(ui->sourceTypeList, &QListWidget::itemActivated, this, &OBSBasicSourceSelect::createNew);
 	connect(ui->sourceTypeList, &QListWidget::currentItemChanged, this, &OBSBasicSourceSelect::sourceTypeSelected);
 	connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
