@@ -11,6 +11,8 @@ target_sources(
     accessibility/AccessibleSettings.hpp
     accessibility/Announcer.cpp
     accessibility/Announcer.hpp
+    accessibility/DialogFixer.cpp
+    accessibility/DialogFixer.hpp
     accessibility/NvdaController.cpp
     accessibility/NvdaController.hpp
     accessibility/OutputAnnouncements.cpp

@@ -1,6 +1,7 @@
 #include "AccessibilityModule.hpp"
 #include "AccessibleSettings.hpp"
 #include "Announcer.hpp"
+#include "DialogFixer.hpp"
 #include "OutputAnnouncements.hpp"
 
 #include <OBSApp.hpp>
@@ -51,6 +52,8 @@ void Initialize(OBSBasic *main)
 
 	OutputAnnouncements *outputAnnouncements = new OutputAnnouncements(main);
 	outputAnnouncements->ConnectStatusBar(main->statusBar());
+
+	qApp->installEventFilter(new DialogFixer(main));
 }
 
 } // namespace OBS::Accessibility
