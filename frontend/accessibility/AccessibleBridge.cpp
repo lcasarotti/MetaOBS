@@ -4,6 +4,7 @@
 #include <OBSApp.hpp>
 #include <utility/BasicOutputHandler.hpp>
 #include <components/SourceTree.hpp>
+#include <utility/QuickTransition.hpp>
 #include <widgets/OBSBasic.hpp>
 #include <widgets/OBSProjector.hpp>
 
@@ -236,4 +237,77 @@ void OBSAccessibleBridge::Screenshot(OBSBasic *main, obs_source_t *source)
 void OBSAccessibleBridge::ScreenshotProgram(OBSBasic *main)
 {
 	main->ScreenshotProgram();
+}
+
+std::vector<OBSSource> OBSAccessibleBridge::Transitions(OBSBasic *main)
+{
+	std::vector<OBSSource> result;
+	for (const std::string &uuid : main->transitionUuids) {
+		auto transition = main->transitions.find(uuid);
+		if (transition != main->transitions.end() && transition->second) {
+			result.push_back(transition->second);
+		}
+	}
+	return result;
+}
+
+void OBSAccessibleBridge::AddTransition(OBSBasic *main, const char *id)
+{
+	main->AddTransition(id);
+}
+
+void OBSAccessibleBridge::RenameCurrentTransition(OBSBasic *main)
+{
+	OBSSource transition = main->GetCurrentTransition();
+	if (transition && obs_source_configurable(transition)) {
+		main->RenameTransition(transition);
+	}
+}
+
+void OBSAccessibleBridge::RemoveCurrentTransition(OBSBasic *main)
+{
+	main->on_transitionRemove_clicked();
+}
+
+std::vector<OBSAccessibleBridge::QuickTransitionInfo> OBSAccessibleBridge::QuickTransitions(OBSBasic *main)
+{
+	std::vector<QuickTransitionInfo> result;
+	for (QuickTransition &quickTransition : main->quickTransitions) {
+		/* The same text as the buttons of the main window. */
+		QString text = quickTransition.fadeToBlack ? QTStr("FadeToBlack")
+							   : QT_UTF8(obs_source_get_name(quickTransition.source));
+		if (!obs_transition_fixed(quickTransition.source)) {
+			text += QString(" (%1ms)").arg(quickTransition.duration);
+		}
+		result.push_back({quickTransition.id, text});
+	}
+	return result;
+}
+
+void OBSAccessibleBridge::TriggerQuickTransition(OBSBasic *main, int id)
+{
+	main->TriggerQuickTransition(id);
+}
+
+int OBSAccessibleBridge::TBarMaximum()
+{
+	/* T_BAR_PRECISION - 1 in OBSBasic_Transitions.cpp. */
+	return 1023;
+}
+
+/* The T-bar only exists in Studio Mode. Moving the main window's slider,
+ * rather than calling obs_frontend_set_tbar_position(), keeps its value in
+ * step with the transition, which TBarReleased() reads. */
+void OBSAccessibleBridge::SetTBarPosition(OBSBasic *main, int position)
+{
+	if (main->IsPreviewProgramMode() && main->tBar) {
+		main->tBar->setValue(position);
+	}
+}
+
+void OBSAccessibleBridge::ReleaseTBar(OBSBasic *main)
+{
+	if (main->IsPreviewProgramMode() && main->tBar) {
+		main->TBarReleased();
+	}
 }

@@ -3,6 +3,9 @@
 #include <obs.hpp>
 
 #include <QList>
+#include <QString>
+
+#include <vector>
 
 class OBSBasic;
 class QAction;
@@ -77,4 +80,29 @@ public:
 	/* Saves a screenshot of the source, or of the program output. */
 	static void Screenshot(OBSBasic *main, obs_source_t *source);
 	static void ScreenshotProgram(OBSBasic *main);
+
+	/* The transitions in the order of the main window's list. */
+	static std::vector<OBSSource> Transitions(OBSBasic *main);
+
+	/* Asks for a name and adds a transition of the given type, as the main
+	 * window's + button does. */
+	static void AddTransition(OBSBasic *main, const char *id);
+	static void RenameCurrentTransition(OBSBasic *main);
+	static void RemoveCurrentTransition(OBSBasic *main);
+
+	/* The quick transitions of Studio Mode, with the text of their
+	 * buttons. */
+	struct QuickTransitionInfo {
+		int id;
+		QString text;
+	};
+	static std::vector<QuickTransitionInfo> QuickTransitions(OBSBasic *main);
+	static void TriggerQuickTransition(OBSBasic *main, int id);
+
+	/* The T-bar of Studio Mode, from 0 to TBarMaximum(). Moving it starts
+	 * a manual transition, and releasing it near either end finishes or
+	 * cancels the transition. Does nothing outside Studio Mode. */
+	static int TBarMaximum();
+	static void SetTBarPosition(OBSBasic *main, int position);
+	static void ReleaseTBar(OBSBasic *main);
 };

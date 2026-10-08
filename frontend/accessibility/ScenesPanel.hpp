@@ -36,6 +36,7 @@ private:
 
 	OBSSource GetSelectedScene() const;
 	void SwitchToSelectedScene();
+	void SendSelectedSceneLive();
 	void RenameSelectedScene();
 	void RemoveSelectedScene();
 	void OpenSelectedSceneFilters();
@@ -52,6 +53,7 @@ private:
 
 	QAction *switchAction;
 	QAction *addAction;
+	QAction *goLiveAction;
 	QAction *renameAction;
 	QAction *removeAction;
 	QAction *filtersAction;

@@ -53,6 +53,9 @@ ScenesPanel::ScenesPanel(OBSBasic *main_, QWidget *parent)
 	layout->addWidget(view);
 
 	switchAction = CreatePanelAction(view, QTStr("Accessibility.Scenes.Switch"));
+	goLiveAction =
+		CreatePanelAction(view, QTStr("Accessibility.Scenes.GoLive"),
+				  {QKeySequence(Qt::CTRL | Qt::Key_Return), QKeySequence(Qt::CTRL | Qt::Key_Enter)});
 	addAction = CreatePanelAction(view, QTStr("Accessibility.Scenes.Add"));
 	renameAction = CreatePanelAction(view, QTStr("Rename"), {QKeySequence(Qt::Key_F2)});
 	removeAction = CreatePanelAction(view, QTStr("Remove"), {QKeySequence(QKeySequence::Delete)});
@@ -72,6 +75,7 @@ ScenesPanel::ScenesPanel(OBSBasic *main_, QWidget *parent)
 	multiviewAction->setCheckable(true);
 
 	connect(switchAction, &QAction::triggered, this, &ScenesPanel::SwitchToSelectedScene);
+	connect(goLiveAction, &QAction::triggered, this, &ScenesPanel::SendSelectedSceneLive);
 	connect(addAction, &QAction::triggered, this, [this]() { OBSAccessibleBridge::AddScene(main); });
 	connect(renameAction, &QAction::triggered, this, &ScenesPanel::RenameSelectedScene);
 	connect(removeAction, &QAction::triggered, this, &ScenesPanel::RemoveSelectedScene);
@@ -146,6 +150,7 @@ void ScenesPanel::CreateMenu()
 	 * screen readers in both. */
 	menu = new QMenu(QTStr("Accessibility.Menu.Scene"), this);
 	menu->addAction(switchAction);
+	menu->addAction(goLiveAction);
 	menu->addSeparator();
 	menu->addAction(addAction);
 	menu->addAction(renameAction);
@@ -335,6 +340,21 @@ void ScenesPanel::SwitchToSelectedScene()
 	OBSSource source = GetSelectedScene();
 	if (source) {
 		main->SetCurrentScene(source);
+	}
+}
+
+/* In Studio Mode, makes the selected scene the preview and transitions to
+ * it; otherwise switches to it, as Enter does. */
+void ScenesPanel::SendSelectedSceneLive()
+{
+	OBSSource source = GetSelectedScene();
+	if (!source) {
+		return;
+	}
+
+	main->SetCurrentScene(source);
+	if (obs_frontend_preview_program_mode_active()) {
+		obs_frontend_preview_program_trigger_transition();
 	}
 }
 
