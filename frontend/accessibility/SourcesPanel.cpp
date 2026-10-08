@@ -8,7 +8,6 @@
 #include <qt-wrappers.hpp>
 
 #include <QAction>
-#include <QContextMenuEvent>
 #include <QMenu>
 #include <QStandardItemModel>
 #include <QTimer>
@@ -77,30 +76,13 @@ std::vector<OBSSceneItem> EnumItemsTopFirst(obs_scene_t *scene, obs_sceneitem_t 
 	return items;
 }
 
-QAction *CreateAction(QWidget *owner, const QString &text, const QKeySequence &shortcut = {})
-{
-	QAction *action = new QAction(text, owner);
-	if (!shortcut.isEmpty()) {
-		action->setShortcut(shortcut);
-		action->setShortcutContext(Qt::WidgetShortcut);
-		owner->addAction(action);
-	}
-	return action;
-}
-
 class SourceTreeView : public QTreeView {
 public:
 	using QTreeView::QTreeView;
 	SourcesPanel *panel = nullptr;
 
 protected:
-	void contextMenuEvent(QContextMenuEvent *event) override
-	{
-		QPoint position = event->reason() == QContextMenuEvent::Keyboard
-					  ? viewport()->mapToGlobal(visualRect(currentIndex()).center())
-					  : event->globalPos();
-		panel->Menu()->exec(position);
-	}
+	void contextMenuEvent(QContextMenuEvent *event) override { ExecContextMenu(this, panel->Menu(), event); }
 };
 } // namespace
 
@@ -119,23 +101,24 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 	QVBoxLayout *layout = new QVBoxLayout(this);
 	layout->addWidget(view);
 
-	addAction = CreateAction(view, QTStr("Accessibility.Sources.Add"));
-	propertiesAction = CreateAction(view, QTStr("Properties"));
-	filtersAction = CreateAction(view, QTStr("Filters"), QKeySequence(Qt::CTRL | Qt::Key_F));
-	transformAction = CreateAction(view, QTStr("Accessibility.Sources.EditTransform"),
-				       QKeySequence(Qt::CTRL | Qt::Key_T));
-	interactAction = CreateAction(view, QTStr("Interact"), QKeySequence(Qt::CTRL | Qt::Key_I));
-	renameAction = CreateAction(view, QTStr("Rename"), QKeySequence(Qt::Key_F2));
-	visibilityAction = CreateAction(view, QTStr("Accessibility.Sources.ToggleVisibility"),
-					QKeySequence(Qt::Key_Space));
-	lockAction = CreateAction(view, QTStr("Accessibility.Sources.ToggleLock"), QKeySequence(Qt::CTRL | Qt::Key_L));
-	removeAction = CreateAction(view, QTStr("Remove"), QKeySequence(QKeySequence::Delete));
-	moveUpAction = CreateAction(view, QTStr("MoveUp"), QKeySequence(Qt::ALT | Qt::Key_Up));
-	moveDownAction = CreateAction(view, QTStr("MoveDown"), QKeySequence(Qt::ALT | Qt::Key_Down));
-	moveToTopAction = CreateAction(view, QTStr("Accessibility.Sources.MoveToTop"),
-				       QKeySequence(Qt::ALT | Qt::Key_Home));
-	moveToBottomAction = CreateAction(view, QTStr("Accessibility.Sources.MoveToBottom"),
-					  QKeySequence(Qt::ALT | Qt::Key_End));
+	addAction = CreatePanelAction(view, QTStr("Accessibility.Sources.Add"));
+	propertiesAction = CreatePanelAction(view, QTStr("Properties"));
+	filtersAction = CreatePanelAction(view, QTStr("Filters"), {QKeySequence(Qt::CTRL | Qt::Key_F)});
+	transformAction = CreatePanelAction(view, QTStr("Accessibility.Sources.EditTransform"),
+					    {QKeySequence(Qt::CTRL | Qt::Key_T)});
+	interactAction = CreatePanelAction(view, QTStr("Interact"), {QKeySequence(Qt::CTRL | Qt::Key_I)});
+	renameAction = CreatePanelAction(view, QTStr("Rename"), {QKeySequence(Qt::Key_F2)});
+	visibilityAction = CreatePanelAction(view, QTStr("Accessibility.Sources.ToggleVisibility"),
+					     {QKeySequence(Qt::Key_Space)});
+	lockAction = CreatePanelAction(view, QTStr("Accessibility.Sources.ToggleLock"),
+				       {QKeySequence(Qt::CTRL | Qt::Key_L)});
+	removeAction = CreatePanelAction(view, QTStr("Remove"), {QKeySequence(QKeySequence::Delete)});
+	moveUpAction = CreatePanelAction(view, QTStr("MoveUp"), {QKeySequence(Qt::ALT | Qt::Key_Up)});
+	moveDownAction = CreatePanelAction(view, QTStr("MoveDown"), {QKeySequence(Qt::ALT | Qt::Key_Down)});
+	moveToTopAction = CreatePanelAction(view, QTStr("Accessibility.Sources.MoveToTop"),
+					    {QKeySequence(Qt::ALT | Qt::Key_Home)});
+	moveToBottomAction = CreatePanelAction(view, QTStr("Accessibility.Sources.MoveToBottom"),
+					       {QKeySequence(Qt::ALT | Qt::Key_End)});
 
 	connect(addAction, &QAction::triggered, this,
 		[this]() { OBSAccessibleBridge::AddSourceAction(main)->trigger(); });

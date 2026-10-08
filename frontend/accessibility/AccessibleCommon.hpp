@@ -2,9 +2,15 @@
 
 #include <obs.hpp>
 
+#include <QKeySequence>
+#include <QList>
 #include <QString>
 
 class OBSBasic;
+class QAbstractItemView;
+class QAction;
+class QContextMenuEvent;
+class QMenu;
 class QWidget;
 
 namespace OBS::Accessibility {
@@ -25,5 +31,17 @@ OBSSceneItem FindSceneItem(const QString &sceneUuid, int64_t itemId);
 void SelectExclusively(obs_scene_t *scene, obs_sceneitem_t *item);
 
 void Announce(const QString &text);
+
+/* Speaks the answer to something the user asked for, such as a status
+ * readout, whatever the announcement level. */
+void AnnounceRequested(const QString &text);
+
+/* Creates a panel action. Its shortcuts work while the owner has focus, so
+ * panels can use the same keys for different actions. */
+QAction *CreatePanelAction(QWidget *owner, const QString &text, const QList<QKeySequence> &shortcuts = {});
+
+/* Opens a panel's menu as the context menu of a list, next to the current
+ * item when it was opened from the keyboard. */
+void ExecContextMenu(QAbstractItemView *view, QMenu *menu, QContextMenuEvent *event);
 
 } // namespace OBS::Accessibility

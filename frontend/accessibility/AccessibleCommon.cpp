@@ -7,6 +7,11 @@
 
 #include <qt-wrappers.hpp>
 
+#include <QAbstractItemView>
+#include <QAction>
+#include <QContextMenuEvent>
+#include <QMenu>
+
 #include <functional>
 #include <string>
 
@@ -123,6 +128,32 @@ void Announce(const QString &text)
 	if (Announcer *announcer = Announcer::Get()) {
 		announcer->Announce(text, Priority::High);
 	}
+}
+
+void AnnounceRequested(const QString &text)
+{
+	if (Announcer *announcer = Announcer::Get()) {
+		announcer->Announce(text, Priority::High, true);
+	}
+}
+
+QAction *CreatePanelAction(QWidget *owner, const QString &text, const QList<QKeySequence> &shortcuts)
+{
+	QAction *action = new QAction(text, owner);
+	if (!shortcuts.isEmpty()) {
+		action->setShortcuts(shortcuts);
+		action->setShortcutContext(Qt::WidgetShortcut);
+		owner->addAction(action);
+	}
+	return action;
+}
+
+void ExecContextMenu(QAbstractItemView *view, QMenu *menu, QContextMenuEvent *event)
+{
+	QPoint position = event->reason() == QContextMenuEvent::Keyboard
+				  ? view->viewport()->mapToGlobal(view->visualRect(view->currentIndex()).center())
+				  : event->globalPos();
+	menu->exec(position);
 }
 
 } // namespace OBS::Accessibility

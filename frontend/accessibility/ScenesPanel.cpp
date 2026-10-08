@@ -8,7 +8,6 @@
 #include <qt-wrappers.hpp>
 
 #include <QAction>
-#include <QContextMenuEvent>
 #include <QListView>
 #include <QListWidget>
 #include <QMenu>
@@ -23,17 +22,6 @@ namespace OBS::Accessibility {
 namespace {
 constexpr int uuidRole = Qt::UserRole;
 
-QAction *CreateAction(QWidget *owner, const QString &text, const QKeySequence &shortcut = {})
-{
-	QAction *action = new QAction(text, owner);
-	if (!shortcut.isEmpty()) {
-		action->setShortcut(shortcut);
-		action->setShortcutContext(Qt::WidgetShortcut);
-		owner->addAction(action);
-	}
-	return action;
-}
-
 /* Opens the scene menu next to the current item, also from the keyboard. */
 class SceneListView : public QListView {
 public:
@@ -41,13 +29,7 @@ public:
 	ScenesPanel *panel = nullptr;
 
 protected:
-	void contextMenuEvent(QContextMenuEvent *event) override
-	{
-		QPoint position = event->reason() == QContextMenuEvent::Keyboard
-					  ? viewport()->mapToGlobal(visualRect(currentIndex()).center())
-					  : event->globalPos();
-		panel->Menu()->exec(position);
-	}
+	void contextMenuEvent(QContextMenuEvent *event) override { ExecContextMenu(this, panel->Menu(), event); }
 };
 } // namespace
 
@@ -68,11 +50,11 @@ ScenesPanel::ScenesPanel(OBSBasic *main_, QWidget *parent)
 	QVBoxLayout *layout = new QVBoxLayout(this);
 	layout->addWidget(view);
 
-	switchAction = CreateAction(view, QTStr("Accessibility.Scenes.Switch"));
-	addAction = CreateAction(view, QTStr("Accessibility.Scenes.Add"));
-	renameAction = CreateAction(view, QTStr("Rename"), QKeySequence(Qt::Key_F2));
-	removeAction = CreateAction(view, QTStr("Remove"), QKeySequence(QKeySequence::Delete));
-	filtersAction = CreateAction(view, QTStr("Filters"));
+	switchAction = CreatePanelAction(view, QTStr("Accessibility.Scenes.Switch"));
+	addAction = CreatePanelAction(view, QTStr("Accessibility.Scenes.Add"));
+	renameAction = CreatePanelAction(view, QTStr("Rename"), {QKeySequence(Qt::Key_F2)});
+	removeAction = CreatePanelAction(view, QTStr("Remove"), {QKeySequence(QKeySequence::Delete)});
+	filtersAction = CreatePanelAction(view, QTStr("Filters"));
 
 	connect(switchAction, &QAction::triggered, this, &ScenesPanel::SwitchToSelectedScene);
 	connect(addAction, &QAction::triggered, this, [this]() { OBSAccessibleBridge::AddScene(main); });
