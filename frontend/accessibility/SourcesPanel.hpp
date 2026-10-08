@@ -20,6 +20,8 @@ class QTreeView;
 
 namespace OBS::Accessibility {
 
+class LayoutMode;
+
 /* Tree of the scene items of the current scene (the preview scene in Studio
  * Mode), with groups as real tree nodes and each item's state in its text. */
 class SourcesPanel : public QGroupBox {
@@ -109,6 +111,9 @@ private:
 	QAction *hideInMixerAction;
 	QAction *resizeOutputAction;
 	QAction *screenshotAction;
+	QAction *layoutModeAction;
+	QAction *describeLayoutAction;
+	LayoutMode *layoutMode;
 
 	QMenu *orderMenu;
 	QMenu *scaleFilteringMenu;

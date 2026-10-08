@@ -1,6 +1,7 @@
 #include "SourcesPanel.hpp"
 #include "AccessibleBridge.hpp"
 #include "AccessibleCommon.hpp"
+#include "LayoutMode.hpp"
 #include "TransitionDialogs.hpp"
 
 #include <OBSApp.hpp>
@@ -134,6 +135,11 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 	hideInMixerAction->setCheckable(true);
 	resizeOutputAction = CreatePanelAction(view, QTStr("ResizeOutputSizeOfSource"));
 	screenshotAction = CreatePanelAction(view, QTStr("Screenshot.Source"));
+	layoutModeAction = CreatePanelAction(view, QTStr("Accessibility.Sources.LayoutMode"),
+					     {QKeySequence(Qt::CTRL | Qt::Key_M)});
+	describeLayoutAction = CreatePanelAction(view, QTStr("Accessibility.Sources.DescribeLayout"));
+
+	layoutMode = new LayoutMode(main, view, [this]() { return GetSelectedItem(); });
 
 	connect(addAction, &QAction::triggered, this,
 		[this]() { OBSAccessibleBridge::AddSourceAction(main)->trigger(); });
@@ -198,6 +204,15 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 			OBSAccessibleBridge::Screenshot(main, obs_sceneitem_get_source(item));
 		}
 	});
+	connect(layoutModeAction, &QAction::triggered, this, [this]() {
+		if (layoutMode->IsActive()) {
+			layoutMode->Exit();
+		} else {
+			layoutMode->Enter();
+		}
+	});
+	connect(describeLayoutAction, &QAction::triggered, this,
+		[this]() { layoutMode->DescribeItem(GetSelectedItem()); });
 
 	CreateMenu();
 
@@ -237,6 +252,8 @@ void SourcesPanel::CreateMenu()
 	menu->addAction(filtersAction);
 	menu->addAction(transformAction);
 	menu->addAction(interactAction);
+	menu->addAction(layoutModeAction);
+	menu->addAction(describeLayoutAction);
 	menu->addSeparator();
 	menu->addAction(visibilityAction);
 	menu->addAction(lockAction);
@@ -345,6 +362,7 @@ void SourcesPanel::UpdateMenuState()
 	showTransitionAction->setEnabled(item != nullptr);
 	hideTransitionAction->setEnabled(item != nullptr);
 	screenshotAction->setVisible(hasVideo);
+	describeLayoutAction->setVisible(hasVideo);
 	resizeOutputAction->setVisible(hasVideo);
 	resizeOutputAction->setEnabled(hasVideo && !obs_video_active() && obs_source_get_width(source) >= 32 &&
 				       obs_source_get_height(source) >= 32);
@@ -500,6 +518,10 @@ void SourcesPanel::Refresh()
 	std::vector<Entry> entries = scene ? CollectEntries(scene) : std::vector<Entry>();
 	QStringList keys;
 	CollectKeys(entries, keys);
+
+	if (sceneChanged) {
+		layoutMode->Exit();
+	}
 
 	if (!sceneChanged && keys == structureKeys) {
 		/* Only names or states changed: keep the screen reader's

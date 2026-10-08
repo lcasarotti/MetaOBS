@@ -13,6 +13,8 @@ target_sources(
     accessibility/AccessibleCommon.hpp
     accessibility/AccessibleFormat.cpp
     accessibility/AccessibleFormat.hpp
+    accessibility/AccessibleLayout.cpp
+    accessibility/AccessibleLayout.hpp
     accessibility/AccessibleMainWindow.cpp
     accessibility/AccessibleMainWindow.hpp
     accessibility/AccessibleSettings.cpp
@@ -29,6 +31,8 @@ target_sources(
     accessibility/ControlsPanel.hpp
     accessibility/DialogFixer.cpp
     accessibility/DialogFixer.hpp
+    accessibility/LayoutMode.cpp
+    accessibility/LayoutMode.hpp
     accessibility/NvdaController.cpp
     accessibility/NvdaController.hpp
     accessibility/OutputAnnouncements.cpp
