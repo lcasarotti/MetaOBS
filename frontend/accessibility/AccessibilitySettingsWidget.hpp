@@ -5,6 +5,7 @@
 class QCheckBox;
 class QComboBox;
 class QPushButton;
+class QSpinBox;
 
 namespace OBS::Accessibility {
 
@@ -30,6 +31,8 @@ private:
 	QComboBox *announceLevel = nullptr;
 	QCheckBox *announceOutputs = nullptr;
 	QCheckBox *announceStatusMessages = nullptr;
+	QCheckBox *announceWarnings = nullptr;
+	QSpinBox *frameLossThreshold = nullptr;
 	QComboBox *speechBackend = nullptr;
 	QPushButton *testNow = nullptr;
 	QPushButton *testDelayed = nullptr;

@@ -9,9 +9,11 @@ class OBSBasic;
 
 namespace OBS::Accessibility {
 
+class AudioPanel;
 class ControlsPanel;
 class ScenesPanel;
 class SourcesPanel;
+class StatusPanel;
 
 /* Main window of Accessible Mode, built only from standard Qt controls. It
  * replaces OBSBasic on screen while OBSBasic keeps running hidden, so all
@@ -42,7 +44,12 @@ private:
 	OBSBasic *main;
 	ScenesPanel *scenesPanel;
 	SourcesPanel *sourcesPanel;
+	AudioPanel *audioPanel;
 	ControlsPanel *controlsPanel;
+	StatusPanel *statusPanel;
+
+	/* The panels in F6 order, and the widget that takes focus in each. */
+	QList<QWidget *> panels;
 	QList<QPointer<QWidget>> panelWidgets;
 };
 

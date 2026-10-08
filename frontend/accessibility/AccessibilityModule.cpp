@@ -5,6 +5,8 @@
 #include "Announcer.hpp"
 #include "DialogFixer.hpp"
 #include "OutputAnnouncements.hpp"
+#include "StatusMonitor.hpp"
+#include "StatusReadouts.hpp"
 
 #include <OBSApp.hpp>
 #include <utility/platform.hpp>
@@ -88,12 +90,15 @@ void Initialize(OBSBasic *main)
 	mainWindow = main;
 	Settings::SetDefaults();
 
-	/* Both objects are owned by the main window, so they are destroyed
+	/* These objects are owned by the main window, so they are destroyed
 	 * together with it and before OBS shuts down. */
 	new Announcer(main);
 
 	OutputAnnouncements *outputAnnouncements = new OutputAnnouncements(main);
 	outputAnnouncements->ConnectStatusBar(main->statusBar());
+
+	new StatusMonitor(main);
+	new StatusHotkeys(main);
 
 	qApp->installEventFilter(new DialogFixer(main));
 

@@ -16,6 +16,8 @@ constexpr const char *announceLevelKey = "AnnounceLevel";
 constexpr const char *announceOutputsKey = "AnnounceOutputs";
 constexpr const char *announceStatusMessagesKey = "AnnounceStatusMessages";
 constexpr const char *speechBackendKey = "SpeechBackend";
+constexpr const char *announceWarningsKey = "AnnounceWarnings";
+constexpr const char *frameLossThresholdKey = "FrameLossThreshold";
 
 config_t *GetConfig()
 {
@@ -32,6 +34,8 @@ void SetDefaults()
 	config_set_default_bool(config, section, announceOutputsKey, true);
 	config_set_default_bool(config, section, announceStatusMessagesKey, true);
 	config_set_default_int(config, section, speechBackendKey, static_cast<int>(SpeechBackend::Automatic));
+	config_set_default_bool(config, section, announceWarningsKey, true);
+	config_set_default_int(config, section, frameLossThresholdKey, defaultFrameLossThreshold);
 }
 
 bool GetAccessibleMode()
@@ -75,6 +79,27 @@ bool GetAnnounceStatusMessages()
 void SetAnnounceStatusMessages(bool enabled)
 {
 	config_set_bool(GetConfig(), section, announceStatusMessagesKey, enabled);
+}
+
+bool GetAnnounceWarnings()
+{
+	return config_get_bool(GetConfig(), section, announceWarningsKey);
+}
+
+void SetAnnounceWarnings(bool enabled)
+{
+	config_set_bool(GetConfig(), section, announceWarningsKey, enabled);
+}
+
+int GetFrameLossThreshold()
+{
+	long long value = config_get_int(GetConfig(), section, frameLossThresholdKey);
+	return static_cast<int>(std::clamp<long long>(value, minimumFrameLossThreshold, maximumFrameLossThreshold));
+}
+
+void SetFrameLossThreshold(int percent)
+{
+	config_set_int(GetConfig(), section, frameLossThresholdKey, percent);
 }
 
 SpeechBackend GetSpeechBackend()

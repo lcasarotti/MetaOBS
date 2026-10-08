@@ -19,6 +19,10 @@ enum class SpeechBackend {
  * config, next to the existing color override keys. */
 namespace Settings {
 
+constexpr int defaultFrameLossThreshold = 5;
+constexpr int minimumFrameLossThreshold = 1;
+constexpr int maximumFrameLossThreshold = 50;
+
 void SetDefaults();
 
 bool GetAccessibleMode();
@@ -32,6 +36,14 @@ void SetAnnounceOutputs(bool enabled);
 
 bool GetAnnounceStatusMessages();
 void SetAnnounceStatusMessages(bool enabled);
+
+/* Warnings about lost frames and low disk space. */
+bool GetAnnounceWarnings();
+void SetAnnounceWarnings(bool enabled);
+
+/* Share of lost frames, in percent, above which a warning is spoken. */
+int GetFrameLossThreshold();
+void SetFrameLossThreshold(int percent);
 
 SpeechBackend GetSpeechBackend();
 void SetSpeechBackend(SpeechBackend backend);

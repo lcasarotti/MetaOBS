@@ -9,6 +9,7 @@
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTimer>
 
 #include "moc_AccessibilitySettingsWidget.cpp"
@@ -53,6 +54,16 @@ AccessibilitySettingsWidget::AccessibilitySettingsWidget(QWidget *parent)
 	announceStatusMessages = new QCheckBox(QTStr("Accessibility.Settings.AnnounceStatusMessages"), this);
 	layout->addRow(announceStatusMessages);
 
+	announceWarnings = new QCheckBox(QTStr("Accessibility.Settings.AnnounceWarnings"), this);
+	announceWarnings->setAccessibleDescription(QTStr("Accessibility.Settings.AnnounceWarnings.Description"));
+	layout->addRow(announceWarnings);
+
+	frameLossThreshold = new QSpinBox(this);
+	frameLossThreshold->setRange(Settings::minimumFrameLossThreshold, Settings::maximumFrameLossThreshold);
+	frameLossThreshold->setSuffix("%");
+	frameLossThreshold->setAccessibleName(QTStr("Accessibility.Settings.FrameLossThreshold"));
+	layout->addRow(QTStr("Accessibility.Settings.FrameLossThreshold"), frameLossThreshold);
+
 	speechBackend = CreateComboBox(this, {"Accessibility.Settings.SpeechBackend.Automatic",
 					      "Accessibility.Settings.SpeechBackend.UIAutomation",
 					      "Accessibility.Settings.SpeechBackend.NvdaController"});
@@ -73,6 +84,9 @@ AccessibilitySettingsWidget::AccessibilitySettingsWidget(QWidget *parent)
 	connect(announceLevel, &QComboBox::currentIndexChanged, this, &AccessibilitySettingsWidget::changed);
 	connect(announceOutputs, &QCheckBox::toggled, this, &AccessibilitySettingsWidget::changed);
 	connect(announceStatusMessages, &QCheckBox::toggled, this, &AccessibilitySettingsWidget::changed);
+	connect(announceWarnings, &QCheckBox::toggled, this, &AccessibilitySettingsWidget::changed);
+	connect(announceWarnings, &QCheckBox::toggled, frameLossThreshold, &QSpinBox::setEnabled);
+	connect(frameLossThreshold, &QSpinBox::valueChanged, this, &AccessibilitySettingsWidget::changed);
 	connect(speechBackend, &QComboBox::currentIndexChanged, this, &AccessibilitySettingsWidget::changed);
 
 	connect(testNow, &QPushButton::clicked, this, [this]() { TestAnnouncement(0); });
@@ -87,12 +101,17 @@ void AccessibilitySettingsWidget::Load()
 	QSignalBlocker blockLevel(announceLevel);
 	QSignalBlocker blockOutputs(announceOutputs);
 	QSignalBlocker blockStatusMessages(announceStatusMessages);
+	QSignalBlocker blockWarnings(announceWarnings);
+	QSignalBlocker blockThreshold(frameLossThreshold);
 	QSignalBlocker blockBackend(speechBackend);
 
 	startInAccessibleMode->setChecked(Settings::GetAccessibleMode());
 	announceLevel->setCurrentIndex(static_cast<int>(Settings::GetAnnounceLevel()));
 	announceOutputs->setChecked(Settings::GetAnnounceOutputs());
 	announceStatusMessages->setChecked(Settings::GetAnnounceStatusMessages());
+	announceWarnings->setChecked(Settings::GetAnnounceWarnings());
+	frameLossThreshold->setValue(Settings::GetFrameLossThreshold());
+	frameLossThreshold->setEnabled(announceWarnings->isChecked());
 	speechBackend->setCurrentIndex(static_cast<int>(Settings::GetSpeechBackend()));
 
 	UpdateSpeechBackendDescription();
@@ -104,6 +123,8 @@ void AccessibilitySettingsWidget::Save()
 	Settings::SetAnnounceLevel(static_cast<AnnounceLevel>(announceLevel->currentIndex()));
 	Settings::SetAnnounceOutputs(announceOutputs->isChecked());
 	Settings::SetAnnounceStatusMessages(announceStatusMessages->isChecked());
+	Settings::SetAnnounceWarnings(announceWarnings->isChecked());
+	Settings::SetFrameLossThreshold(frameLossThreshold->value());
 	Settings::SetSpeechBackend(static_cast<SpeechBackend>(speechBackend->currentIndex()));
 }
 

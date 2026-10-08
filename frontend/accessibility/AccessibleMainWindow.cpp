@@ -1,9 +1,11 @@
 #include "AccessibleMainWindow.hpp"
 #include "AccessibilityModule.hpp"
 #include "AccessibleBridge.hpp"
+#include "AudioPanel.hpp"
 #include "ControlsPanel.hpp"
 #include "ScenesPanel.hpp"
 #include "SourcesPanel.hpp"
+#include "StatusPanel.hpp"
 
 #include <OBSApp.hpp>
 #include <widgets/OBSBasic.hpp>
@@ -15,6 +17,7 @@
 #include <QHBoxLayout>
 #include <QHideEvent>
 #include <QListView>
+#include <QListWidget>
 #include <QMenu>
 #include <QMenuBar>
 #include <QTimer>
@@ -49,23 +52,33 @@ AccessibleMainWindow::AccessibleMainWindow(OBSBasic *main_) : QMainWindow(nullpt
 	QVBoxLayout *layout = new QVBoxLayout(central);
 	QHBoxLayout *listsLayout = new QHBoxLayout();
 
+	QHBoxLayout *audioLayout = new QHBoxLayout();
+
 	scenesPanel = new ScenesPanel(main, central);
 	sourcesPanel = new SourcesPanel(main, central);
+	audioPanel = new AudioPanel(main, central);
 	controlsPanel = new ControlsPanel(main, central);
+	statusPanel = new StatusPanel(central);
 
 	listsLayout->addWidget(scenesPanel, 1);
 	listsLayout->addWidget(sourcesPanel, 2);
-	layout->addLayout(listsLayout, 1);
+	audioLayout->addWidget(audioPanel, 2);
+	audioLayout->addWidget(statusPanel, 1);
+	layout->addLayout(listsLayout, 2);
+	layout->addLayout(audioLayout, 1);
 	layout->addWidget(controlsPanel);
 	setCentralWidget(central);
 
-	panelWidgets = {scenesPanel->View(), sourcesPanel->View(), controlsPanel->FirstControl()};
+	panels = {scenesPanel, sourcesPanel, audioPanel, controlsPanel, statusPanel};
+	panelWidgets = {scenesPanel->View(), sourcesPanel->View(), audioPanel->View(), controlsPanel->FirstControl(),
+			statusPanel->View()};
 
-	setTabOrder(scenesPanel->View(), sourcesPanel->View());
-	setTabOrder(sourcesPanel->View(), controlsPanel->FirstControl());
+	for (int i = 1; i < panelWidgets.size(); i++) {
+		setTabOrder(panelWidgets[i - 1], panelWidgets[i]);
+	}
 
 	/* F6 moves between panels, as in many Windows applications, and
-	 * Ctrl+1 to Ctrl+3 jump to a panel. */
+	 * Ctrl+1 to Ctrl+5 jump to a panel. */
 	QAction *nextPanel = new QAction(this);
 	nextPanel->setShortcut(QKeySequence(Qt::Key_F6));
 	connect(nextPanel, &QAction::triggered, this, [this]() { CyclePanels(1); });
@@ -95,7 +108,7 @@ AccessibleMainWindow::AccessibleMainWindow(OBSBasic *main_) : QMainWindow(nullpt
 	qApp->installEventFilter(this);
 	obs_frontend_add_event_callback(OnFrontendEvent, this);
 
-	resize(1000, 650);
+	resize(1100, 800);
 }
 
 AccessibleMainWindow::~AccessibleMainWindow()
@@ -120,7 +133,9 @@ void AccessibleMainWindow::CreateMenus()
 
 	bar->addMenu(scenesPanel->Menu());
 	bar->addMenu(sourcesPanel->Menu());
+	bar->addMenu(audioPanel->Menu());
 	controlsPanel->FillMenu(bar->addMenu(QTStr("Accessibility.Menu.Controls")));
+	bar->addMenu(statusPanel->Menu());
 
 	bar->addMenu(OBSAccessibleBridge::ProfileMenu(main));
 	bar->addMenu(OBSAccessibleBridge::SceneCollectionMenu(main));
@@ -155,7 +170,6 @@ void AccessibleMainWindow::FocusPanel(int index)
 void AccessibleMainWindow::CyclePanels(int direction)
 {
 	QWidget *focused = QApplication::focusWidget();
-	QList<QWidget *> panels = {scenesPanel, sourcesPanel, controlsPanel};
 
 	int current = -1;
 	for (int i = 0; i < panels.size(); i++) {

@@ -29,16 +29,21 @@ private:
 	static void OnStreamingStop(void *data, calldata_t *params);
 	static void OnRecordingStop(void *data, calldata_t *params);
 	static void OnReplayBufferStop(void *data, calldata_t *params);
+	static void OnStreamingReconnect(void *data, calldata_t *params);
+	static void OnStreamingReconnectSuccess(void *data, calldata_t *params);
 
 	void HandleFrontendEvent(enum obs_frontend_event event);
 	void WatchOutput(OutputKind kind, obs_output_t *output);
 	void OnStatusMessage(const QString &message);
+	bool IsReconnectMessage(const QString &message) const;
 
 	static QString DescribeStopError(OutputKind kind, int code, const char *lastError);
 
 	OBSSignal streamingStopSignal;
 	OBSSignal recordingStopSignal;
 	OBSSignal replayBufferStopSignal;
+	OBSSignal streamingReconnectSignal;
+	OBSSignal streamingReconnectSuccessSignal;
 };
 
 } // namespace OBS::Accessibility

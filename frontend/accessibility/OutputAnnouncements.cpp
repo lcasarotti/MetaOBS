@@ -4,6 +4,7 @@
 
 #include <OBSApp.hpp>
 
+#include <QRegularExpression>
 #include <QStatusBar>
 
 #include "moc_OutputAnnouncements.cpp"
@@ -11,15 +12,20 @@
 namespace OBS::Accessibility {
 
 namespace {
-void AnnounceOutput(const char *lookupKey, Priority priority)
+void AnnounceOutput(const QString &text, Priority priority)
 {
 	if (!Settings::GetAnnounceOutputs()) {
 		return;
 	}
 
 	if (Announcer *announcer = Announcer::Get()) {
-		announcer->Announce(QTStr(lookupKey), priority);
+		announcer->Announce(text, priority);
 	}
+}
+
+void AnnounceOutput(const char *lookupKey, Priority priority)
+{
+	AnnounceOutput(QTStr(lookupKey), priority);
 }
 
 int GetStopCode(calldata_t *params)
@@ -121,6 +127,8 @@ void OutputAnnouncements::HandleFrontendEvent(enum obs_frontend_event event)
 		streamingStopSignal.Disconnect();
 		recordingStopSignal.Disconnect();
 		replayBufferStopSignal.Disconnect();
+		streamingReconnectSignal.Disconnect();
+		streamingReconnectSuccessSignal.Disconnect();
 		break;
 
 	default:
@@ -153,7 +161,14 @@ void OutputAnnouncements::WatchOutput(OutputKind kind, obs_output_t *output)
 		return;
 	}
 
-	signal->Connect(obs_output_get_signal_handler(output), "stop", callback, this);
+	signal_handler_t *handler = obs_output_get_signal_handler(output);
+	signal->Connect(handler, "stop", callback, this);
+
+	if (kind == OutputKind::Streaming) {
+		streamingReconnectSignal.Connect(handler, "reconnect", OnStreamingReconnect, this);
+		streamingReconnectSuccessSignal.Connect(handler, "reconnect_success", OnStreamingReconnectSuccess,
+							this);
+	}
 }
 
 /* The stop callbacks run on the output's thread. */
@@ -182,6 +197,26 @@ void OutputAnnouncements::OnReplayBufferStop(void *, calldata_t *params)
 		Announcer::AnnounceFromAnyThread(
 			DescribeStopError(OutputKind::ReplayBuffer, code, GetLastError(params)), Priority::High);
 	}
+}
+
+/* The reconnect callbacks run on the output's thread. */
+void OutputAnnouncements::OnStreamingReconnect(void *data, calldata_t *params)
+{
+	auto announcements = static_cast<OutputAnnouncements *>(data);
+	int seconds = static_cast<int>(calldata_int(params, "timeout_sec"));
+
+	QMetaObject::invokeMethod(announcements, [seconds]() {
+		QString text = QTStr("Accessibility.Announce.StreamReconnecting").arg(seconds);
+		AnnounceOutput(text, Priority::High);
+	});
+}
+
+void OutputAnnouncements::OnStreamingReconnectSuccess(void *data, calldata_t *)
+{
+	auto announcements = static_cast<OutputAnnouncements *>(data);
+	QMetaObject::invokeMethod(announcements, []() {
+		AnnounceOutput(QTStr("Basic.StatusBar.ReconnectSuccessful"), Priority::High);
+	});
 }
 
 QString OutputAnnouncements::DescribeStopError(OutputKind kind, int code, const char *lastError)
@@ -245,13 +280,32 @@ QString OutputAnnouncements::DescribeStopError(OutputKind kind, int code, const 
 
 void OutputAnnouncements::OnStatusMessage(const QString &message)
 {
-	if (message.isEmpty() || !Settings::GetAnnounceStatusMessages()) {
+	if (message.isEmpty() || !Settings::GetAnnounceStatusMessages() || IsReconnectMessage(message)) {
 		return;
 	}
 
 	if (Announcer *announcer = Announcer::Get()) {
 		announcer->Announce(message, Priority::Normal);
 	}
+}
+
+/* While the stream reconnects, the status bar shows a countdown that changes
+ * every second. The reconnect signals are announced instead. */
+bool OutputAnnouncements::IsReconnectMessage(const QString &message) const
+{
+	for (const char *lookupKey : {"Basic.StatusBar.Reconnecting", "Basic.StatusBar.AttemptingReconnect"}) {
+		QStringList parts = QTStr(lookupKey).split(QRegularExpression("%\\d"));
+		for (QString &part : parts) {
+			part = QRegularExpression::escape(part);
+		}
+
+		QRegularExpression pattern("^" + parts.join("\\d+") + "$");
+		if (pattern.match(message).hasMatch()) {
+			return true;
+		}
+	}
+
+	return message == QTStr("Basic.StatusBar.ReconnectSuccessful");
 }
 
 } // namespace OBS::Accessibility

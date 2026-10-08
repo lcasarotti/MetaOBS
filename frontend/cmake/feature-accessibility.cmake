@@ -11,12 +11,20 @@ target_sources(
     accessibility/AccessibleBridge.hpp
     accessibility/AccessibleCommon.cpp
     accessibility/AccessibleCommon.hpp
+    accessibility/AccessibleFormat.cpp
+    accessibility/AccessibleFormat.hpp
     accessibility/AccessibleMainWindow.cpp
     accessibility/AccessibleMainWindow.hpp
     accessibility/AccessibleSettings.cpp
     accessibility/AccessibleSettings.hpp
     accessibility/Announcer.cpp
     accessibility/Announcer.hpp
+    accessibility/AudioActions.cpp
+    accessibility/AudioActions.hpp
+    accessibility/AudioPanel.cpp
+    accessibility/AudioPanel.hpp
+    accessibility/AudioPropertiesDialog.cpp
+    accessibility/AudioPropertiesDialog.hpp
     accessibility/ControlsPanel.cpp
     accessibility/ControlsPanel.hpp
     accessibility/DialogFixer.cpp
@@ -29,4 +37,10 @@ target_sources(
     accessibility/ScenesPanel.hpp
     accessibility/SourcesPanel.cpp
     accessibility/SourcesPanel.hpp
+    accessibility/StatusMonitor.cpp
+    accessibility/StatusMonitor.hpp
+    accessibility/StatusPanel.cpp
+    accessibility/StatusPanel.hpp
+    accessibility/StatusReadouts.cpp
+    accessibility/StatusReadouts.hpp
 )
