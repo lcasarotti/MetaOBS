@@ -3,6 +3,7 @@
 #include "AccessibleBridge.hpp"
 #include "AccessibleCommon.hpp"
 #include "AudioPanel.hpp"
+#include "CommandPalette.hpp"
 #include "ControlsPanel.hpp"
 #include "ScenesPanel.hpp"
 #include "SourcesPanel.hpp"
@@ -131,6 +132,10 @@ void AccessibleMainWindow::CreateMenus()
 	QAction *standardInterface = viewMenu->addAction(QTStr("Accessibility.Action.StandardInterface"));
 	standardInterface->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_A));
 	connect(standardInterface, &QAction::triggered, this, []() { SwitchToStandardMode(); });
+	QAction *commandPalette = viewMenu->addAction(QTStr("Accessibility.Palette.Action"));
+	commandPalette->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_P));
+	connect(commandPalette, &QAction::triggered, this, [this]() { CommandPalette::Run(menuBar(), this); });
+	CommandPalette::Exclude(commandPalette);
 	viewMenu->addSeparator();
 	AddProjectorMenus(viewMenu);
 
@@ -144,6 +149,7 @@ void AccessibleMainWindow::CreateMenus()
 		}
 	}
 	reserved.append(standardInterface->shortcut());
+	reserved.append(commandPalette->shortcut());
 	sourcesPanel->AddMirroredActions(reserved);
 
 	bar->addMenu(scenesPanel->Menu());

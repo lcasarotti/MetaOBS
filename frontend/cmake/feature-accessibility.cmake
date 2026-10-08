@@ -27,6 +27,8 @@ target_sources(
     accessibility/AudioPanel.hpp
     accessibility/AudioPropertiesDialog.cpp
     accessibility/AudioPropertiesDialog.hpp
+    accessibility/CommandPalette.cpp
+    accessibility/CommandPalette.hpp
     accessibility/ControlsPanel.cpp
     accessibility/ControlsPanel.hpp
     accessibility/DialogFixer.cpp
