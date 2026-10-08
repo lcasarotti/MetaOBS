@@ -3,7 +3,9 @@
 
 #include <OBSApp.hpp>
 #include <utility/BasicOutputHandler.hpp>
+#include <components/SourceTree.hpp>
 #include <widgets/OBSBasic.hpp>
+#include <widgets/OBSProjector.hpp>
 
 #include <qt-wrappers.hpp>
 
@@ -60,6 +62,16 @@ QAction *OBSAccessibleBridge::AddSourceAction(OBSBasic *main)
 QAction *OBSAccessibleBridge::EditTransformAction(OBSBasic *main)
 {
 	return main->ui->actionEditTransform;
+}
+
+QMenu *OBSAccessibleBridge::TransformMenu(OBSBasic *main)
+{
+	return main->ui->transformMenu;
+}
+
+QList<QAction *> OBSAccessibleBridge::SourceClipboardActions(OBSBasic *main)
+{
+	return {main->ui->actionCopySource, main->ui->actionPasteRef, main->ui->actionPasteDup};
 }
 
 QListWidget *OBSAccessibleBridge::SceneList(OBSBasic *main)
@@ -154,4 +166,74 @@ void OBSAccessibleBridge::MoveSelectedSources(OBSBasic *main, obs_order_movement
 		main->on_actionMoveToBottom_triggered();
 		break;
 	}
+}
+
+bool OBSAccessibleBridge::MoveScene(OBSBasic *main, OBSScene scene, int row)
+{
+	QListWidget *list = main->ui->scenes;
+	int from = -1;
+	for (int i = 0; i < list->count(); i++) {
+		if (GetOBSRef<OBSScene>(list->item(i)) == scene) {
+			from = i;
+			break;
+		}
+	}
+
+	if (from < 0 || row < 0 || row >= list->count() || row == from) {
+		return false;
+	}
+
+	/* As in ChangeSceneIndex, but the moved scene does not become the
+	 * current one. */
+	QListWidgetItem *current = list->currentItem();
+	list->blockSignals(true);
+	QListWidgetItem *item = list->takeItem(from);
+	list->insertItem(row, item);
+	list->setCurrentItem(current);
+	list->blockSignals(false);
+
+	OBSProjector::UpdateMultiviewProjectors();
+	return true;
+}
+
+void OBSAccessibleBridge::GroupSelectedSources(OBSBasic *main)
+{
+	main->ui->sources->GroupSelectedItems();
+}
+
+void OBSAccessibleBridge::UngroupSelectedSources(OBSBasic *main)
+{
+	main->ui->sources->UngroupSelectedGroups();
+}
+
+void OBSAccessibleBridge::ResizeOutputToSelectedSource(OBSBasic *main)
+{
+	main->ResizeOutputSizeOfSource();
+}
+
+void OBSAccessibleBridge::CopyFilters(OBSBasic *main, obs_source_t *source)
+{
+	main->copyFiltersSource_ = obs_source_get_weak_source(source);
+	main->ui->actionPasteFilters->setEnabled(true);
+}
+
+void OBSAccessibleBridge::PasteFilters(OBSBasic *main, obs_source_t *destination)
+{
+	OBSSourceAutoRelease source = obs_weak_source_get_source(main->copyFiltersSource());
+	main->SourcePasteFilters(source.Get(), destination);
+}
+
+bool OBSAccessibleBridge::HasCopiedFilters(OBSBasic *main)
+{
+	return !obs_weak_source_expired(main->copyFiltersSource());
+}
+
+void OBSAccessibleBridge::Screenshot(OBSBasic *main, obs_source_t *source)
+{
+	main->Screenshot(source);
+}
+
+void OBSAccessibleBridge::ScreenshotProgram(OBSBasic *main)
+{
+	main->ScreenshotProgram();
 }

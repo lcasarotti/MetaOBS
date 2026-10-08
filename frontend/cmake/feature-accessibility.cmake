@@ -43,4 +43,6 @@ target_sources(
     accessibility/StatusPanel.hpp
     accessibility/StatusReadouts.cpp
     accessibility/StatusReadouts.hpp
+    accessibility/TransitionDialogs.cpp
+    accessibility/TransitionDialogs.hpp
 )

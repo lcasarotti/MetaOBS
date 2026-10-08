@@ -2,6 +2,8 @@
 
 #include <obs.hpp>
 
+#include <QList>
+
 class OBSBasic;
 class QAction;
 class QListWidget;
@@ -26,6 +28,14 @@ public:
 	static QAction *AddSourceAction(OBSBasic *main);
 	static QAction *EditTransformAction(OBSBasic *main);
 
+	/* The Transform submenu of the Edit menu, which acts on the selected
+	 * scene items. */
+	static QMenu *TransformMenu(OBSBasic *main);
+
+	/* Copy, Paste (Reference) and Paste (Duplicate) of scene items, which
+	 * act on the selected items and the current scene. */
+	static QList<QAction *> SourceClipboardActions(OBSBasic *main);
+
 	/* The main window's scene list, which holds the scene order. */
 	static QListWidget *SceneList(OBSBasic *main);
 
@@ -48,7 +58,23 @@ public:
 	static void AddScene(OBSBasic *main);
 	static void RemoveScene(OBSBasic *main, OBSScene scene);
 
+	/* Moves a scene to another row of the scene list, which holds the
+	 * scene order, without changing the current scene. */
+	static bool MoveScene(OBSBasic *main, OBSScene scene, int row);
+
 	/* Act on the selected scene items of the current scene. */
 	static void RemoveSelectedSources(OBSBasic *main);
 	static void MoveSelectedSources(OBSBasic *main, obs_order_movement movement);
+	static void GroupSelectedSources(OBSBasic *main);
+	static void UngroupSelectedSources(OBSBasic *main);
+	static void ResizeOutputToSelectedSource(OBSBasic *main);
+
+	/* The filters clipboard, shared with the main window. */
+	static void CopyFilters(OBSBasic *main, obs_source_t *source);
+	static void PasteFilters(OBSBasic *main, obs_source_t *destination);
+	static bool HasCopiedFilters(OBSBasic *main);
+
+	/* Saves a screenshot of the source, or of the program output. */
+	static void Screenshot(OBSBasic *main, obs_source_t *source);
+	static void ScreenshotProgram(OBSBasic *main);
 };

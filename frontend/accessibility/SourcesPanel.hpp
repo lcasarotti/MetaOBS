@@ -4,6 +4,8 @@
 #include <obs.hpp>
 
 #include <QGroupBox>
+#include <QKeySequence>
+#include <QList>
 #include <QSet>
 
 #include <vector>
@@ -30,6 +32,10 @@ public:
 	QTreeView *View() const { return view; }
 	QMenu *Menu() const { return menu; }
 
+	/* Adds the Transform submenu and the clipboard items, which mirror
+	 * main window actions, leaving out the reserved shortcuts. */
+	void AddMirroredActions(const QList<QKeySequence> &reserved);
+
 private:
 	struct Entry {
 		QString sceneUuid;
@@ -54,7 +60,10 @@ private:
 	void UpdateTexts(QStandardItem *parent, const std::vector<Entry> &entries);
 
 	OBSSceneItem GetSelectedItem() const;
+	std::vector<OBSSceneItem> GetSelectedItems() const;
 	void SyncSelection();
+	void UpdateMenuState();
+	void FillItemMenu(QMenu *itemMenu, QMenu *(OBSBasic::*fill)(QMenu *, obs_sceneitem_t *));
 
 	void OpenProperties();
 	void OpenFilters();
@@ -91,6 +100,23 @@ private:
 	QAction *moveDownAction;
 	QAction *moveToTopAction;
 	QAction *moveToBottomAction;
+	QAction *groupAction;
+	QAction *ungroupAction;
+	QAction *copyFiltersAction;
+	QAction *pasteFiltersAction;
+	QAction *showTransitionAction;
+	QAction *hideTransitionAction;
+	QAction *hideInMixerAction;
+	QAction *resizeOutputAction;
+	QAction *screenshotAction;
+
+	QMenu *orderMenu;
+	QMenu *scaleFilteringMenu;
+	QMenu *blendingModeMenu;
+	QMenu *blendingMethodMenu;
+	QMenu *deinterlacingMenu;
+	QMenu *projectorMenu;
+	QAction *clipboardSeparator;
 };
 
 } // namespace OBS::Accessibility

@@ -6,6 +6,7 @@
 #include <QPointer>
 
 class OBSBasic;
+class QMenu;
 
 namespace OBS::Accessibility {
 
@@ -36,6 +37,7 @@ private:
 	static void OnFrontendEvent(enum obs_frontend_event event, void *data);
 
 	void CreateMenus();
+	void AddProjectorMenus(QMenu *viewMenu);
 	void FocusPanel(int index);
 	void CyclePanels(int direction);
 	void UpdateTitle(const QString &mainTitle);

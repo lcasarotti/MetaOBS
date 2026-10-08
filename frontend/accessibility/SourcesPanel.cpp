@@ -1,6 +1,7 @@
 #include "SourcesPanel.hpp"
 #include "AccessibleBridge.hpp"
 #include "AccessibleCommon.hpp"
+#include "TransitionDialogs.hpp"
 
 #include <OBSApp.hpp>
 #include <widgets/OBSBasic.hpp>
@@ -92,7 +93,9 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 	treeView->panel = this;
 	view = treeView;
 	view->setHeaderHidden(true);
-	view->setSelectionMode(QAbstractItemView::SingleSelection);
+	/* Several items can be selected with Shift and the arrows, or with
+	 * Ctrl+Space, to remove, move or group them together. */
+	view->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
 	model = new QStandardItemModel(this);
@@ -119,6 +122,18 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 					    {QKeySequence(Qt::ALT | Qt::Key_Home)});
 	moveToBottomAction = CreatePanelAction(view, QTStr("Accessibility.Sources.MoveToBottom"),
 					       {QKeySequence(Qt::ALT | Qt::Key_End)});
+	groupAction =
+		CreatePanelAction(view, QTStr("Basic.Main.GroupItems"), {QKeySequence(Qt::CTRL | Qt::Key_G)});
+	ungroupAction = CreatePanelAction(view, QTStr("Basic.Main.Ungroup"),
+					  {QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_G)});
+	copyFiltersAction = CreatePanelAction(view, QTStr("Copy.Filters"));
+	pasteFiltersAction = CreatePanelAction(view, QTStr("Paste.Filters"));
+	showTransitionAction = CreatePanelAction(view, QTStr("Accessibility.Sources.ShowTransition"));
+	hideTransitionAction = CreatePanelAction(view, QTStr("Accessibility.Sources.HideTransition"));
+	hideInMixerAction = CreatePanelAction(view, QTStr("HideMixer"));
+	hideInMixerAction->setCheckable(true);
+	resizeOutputAction = CreatePanelAction(view, QTStr("ResizeOutputSizeOfSource"));
+	screenshotAction = CreatePanelAction(view, QTStr("Screenshot.Source"));
 
 	connect(addAction, &QAction::triggered, this,
 		[this]() { OBSAccessibleBridge::AddSourceAction(main)->trigger(); });
@@ -134,13 +149,62 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 	connect(moveDownAction, &QAction::triggered, this, [this]() { MoveSelected(OBS_ORDER_MOVE_DOWN); });
 	connect(moveToTopAction, &QAction::triggered, this, [this]() { MoveSelected(OBS_ORDER_MOVE_TOP); });
 	connect(moveToBottomAction, &QAction::triggered, this, [this]() { MoveSelected(OBS_ORDER_MOVE_BOTTOM); });
+	connect(groupAction, &QAction::triggered, this, [this]() {
+		if (GetSelectedItems().size() > 1) {
+			SyncSelection();
+			OBSAccessibleBridge::GroupSelectedSources(main);
+		}
+	});
+	connect(ungroupAction, &QAction::triggered, this, [this]() {
+		OBSSceneItem item = GetSelectedItem();
+		if (item && obs_sceneitem_is_group(item)) {
+			SyncSelection();
+			OBSAccessibleBridge::UngroupSelectedSources(main);
+		}
+	});
+	connect(copyFiltersAction, &QAction::triggered, this, [this]() {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			OBSAccessibleBridge::CopyFilters(main, obs_sceneitem_get_source(item));
+		}
+	});
+	connect(pasteFiltersAction, &QAction::triggered, this, [this]() {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			OBSAccessibleBridge::PasteFilters(main, obs_sceneitem_get_source(item));
+		}
+	});
+	connect(showTransitionAction, &QAction::triggered, this, [this]() {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			EditVisibilityTransition(main, item, true, window());
+		}
+	});
+	connect(hideTransitionAction, &QAction::triggered, this, [this]() {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			EditVisibilityTransition(main, item, false, window());
+		}
+	});
+	connect(hideInMixerAction, &QAction::triggered, this, [this](bool checked) {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			SetHiddenInMixer(main, obs_sceneitem_get_source(item), checked);
+		}
+	});
+	connect(resizeOutputAction, &QAction::triggered, this, [this]() {
+		if (GetSelectedItem()) {
+			SyncSelection();
+			OBSAccessibleBridge::ResizeOutputToSelectedSource(main);
+		}
+	});
+	connect(screenshotAction, &QAction::triggered, this, [this]() {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			OBSAccessibleBridge::Screenshot(main, obs_sceneitem_get_source(item));
+		}
+	});
 
 	CreateMenu();
 
 	/* Enter and double-click open the properties, as double-click does in
 	 * the main window. */
 	connect(view, &QTreeView::activated, this, &SourcesPanel::OpenProperties);
-	connect(view->selectionModel(), &QItemSelectionModel::currentChanged, this, &SourcesPanel::SyncSelection);
+	connect(view->selectionModel(), &QItemSelectionModel::selectionChanged, this, &SourcesPanel::SyncSelection);
 
 	refreshTimer = new QTimer(this);
 	refreshTimer->setSingleShot(true);
@@ -179,10 +243,117 @@ void SourcesPanel::CreateMenu()
 	menu->addAction(renameAction);
 	menu->addAction(removeAction);
 	menu->addSeparator();
-	menu->addAction(moveUpAction);
-	menu->addAction(moveDownAction);
-	menu->addAction(moveToTopAction);
-	menu->addAction(moveToBottomAction);
+
+	orderMenu = menu->addMenu(QTStr("Basic.MainMenu.Edit.Order"));
+	orderMenu->addAction(moveUpAction);
+	orderMenu->addAction(moveDownAction);
+	orderMenu->addAction(moveToTopAction);
+	orderMenu->addAction(moveToBottomAction);
+
+	/* AddMirroredActions() inserts the Transform submenu and the source
+	 * clipboard items here. */
+	clipboardSeparator = menu->addSeparator();
+	menu->addAction(copyFiltersAction);
+	menu->addAction(pasteFiltersAction);
+	menu->addSeparator();
+	menu->addAction(groupAction);
+	menu->addAction(ungroupAction);
+	menu->addSeparator();
+
+	scaleFilteringMenu = menu->addMenu(QTStr("ScaleFiltering"));
+	blendingModeMenu = menu->addMenu(QTStr("BlendingMode"));
+	blendingMethodMenu = menu->addMenu(QTStr("BlendingMethod"));
+	deinterlacingMenu = menu->addMenu(QTStr("Deinterlacing"));
+	menu->addAction(showTransitionAction);
+	menu->addAction(hideTransitionAction);
+	menu->addSeparator();
+	menu->addAction(hideInMixerAction);
+	menu->addAction(resizeOutputAction);
+	menu->addSeparator();
+	projectorMenu = menu->addMenu(QTStr("Projector.Open.Source"));
+	menu->addAction(screenshotAction);
+
+	/* The main window builds these submenus for one scene item, so they
+	 * are built again each time they open. */
+	connect(scaleFilteringMenu, &QMenu::aboutToShow, this,
+		[this]() { FillItemMenu(scaleFilteringMenu, &OBSBasic::AddScaleFilteringMenu); });
+	connect(blendingModeMenu, &QMenu::aboutToShow, this,
+		[this]() { FillItemMenu(blendingModeMenu, &OBSBasic::AddBlendingModeMenu); });
+	connect(blendingMethodMenu, &QMenu::aboutToShow, this,
+		[this]() { FillItemMenu(blendingMethodMenu, &OBSBasic::AddBlendingMethodMenu); });
+	connect(deinterlacingMenu, &QMenu::aboutToShow, this, [this]() {
+		deinterlacingMenu->clear();
+		if (OBSSceneItem item = GetSelectedItem()) {
+			SyncSelection();
+			main->AddDeinterlacingMenu(deinterlacingMenu, obs_sceneitem_get_source(item));
+		}
+	});
+	connect(projectorMenu, &QMenu::aboutToShow, this, [this]() {
+		obs_source_t *source = obs_sceneitem_get_source(GetSelectedItem());
+		FillProjectorMenu(projectorMenu, "Source", QT_UTF8(obs_source_get_name(source)));
+	});
+
+	connect(menu, &QMenu::aboutToShow, this, &SourcesPanel::UpdateMenuState);
+}
+
+void SourcesPanel::AddMirroredActions(const QList<QKeySequence> &reserved)
+{
+	QMenu *transformMenu = new QMenu(QTStr("Basic.MainMenu.Edit.Transform"), menu);
+	for (QAction *action : OBSAccessibleBridge::TransformMenu(main)->actions()) {
+		if (action->isSeparator()) {
+			transformMenu->addSeparator();
+		} else {
+			transformMenu->addAction(CreateMirrorAction(action, transformMenu, reserved));
+		}
+	}
+	menu->insertMenu(clipboardSeparator, transformMenu);
+	menu->insertSeparator(clipboardSeparator);
+
+	for (QAction *action : OBSAccessibleBridge::SourceClipboardActions(main)) {
+		menu->insertAction(clipboardSeparator, CreateMirrorAction(action, menu, reserved));
+	}
+}
+
+void SourcesPanel::FillItemMenu(QMenu *itemMenu, QMenu *(OBSBasic::*fill)(QMenu *, obs_sceneitem_t *))
+{
+	itemMenu->clear();
+
+	/* The main window's actions apply to its current scene item, which
+	 * follows the selection. */
+	if (OBSSceneItem item = GetSelectedItem()) {
+		SyncSelection();
+		(main->*fill)(itemMenu, item);
+	}
+}
+
+/* The items that depend on the selected source are updated when the menu
+ * opens. Items with shortcuts stay enabled, since their shortcuts work
+ * without the menu. */
+void SourcesPanel::UpdateMenuState()
+{
+	OBSSceneItem item = GetSelectedItem();
+	obs_source_t *source = obs_sceneitem_get_source(item);
+	uint32_t flags = source ? obs_source_get_output_flags(source) : 0;
+	bool hasVideo = (flags & OBS_SOURCE_VIDEO) != 0;
+	bool hasAudio = (flags & OBS_SOURCE_AUDIO) != 0;
+
+	for (QMenu *videoMenu : {scaleFilteringMenu, blendingModeMenu, blendingMethodMenu, projectorMenu}) {
+		videoMenu->menuAction()->setVisible(hasVideo);
+	}
+	deinterlacingMenu->menuAction()->setVisible((flags & OBS_SOURCE_ASYNC_VIDEO) == OBS_SOURCE_ASYNC_VIDEO);
+
+	showTransitionAction->setEnabled(item != nullptr);
+	hideTransitionAction->setEnabled(item != nullptr);
+	screenshotAction->setVisible(hasVideo);
+	resizeOutputAction->setVisible(hasVideo);
+	resizeOutputAction->setEnabled(hasVideo && !obs_video_active() && obs_source_get_width(source) >= 32 &&
+				       obs_source_get_height(source) >= 32);
+
+	hideInMixerAction->setVisible(hasAudio);
+	hideInMixerAction->setChecked(hasAudio && IsHiddenInMixer(source));
+
+	copyFiltersAction->setEnabled(source && obs_source_filter_count(source) > 0);
+	pasteFiltersAction->setEnabled(source && OBSAccessibleBridge::HasCopiedFilters(main));
 }
 
 void SourcesPanel::OnFrontendEvent(enum obs_frontend_event event, void *data)
@@ -398,12 +569,34 @@ OBSSceneItem SourcesPanel::GetSelectedItem() const
 	return FindSceneItem(index.data(sceneUuidRole).toString(), index.data(itemIdRole).toLongLong());
 }
 
+std::vector<OBSSceneItem> SourcesPanel::GetSelectedItems() const
+{
+	std::vector<OBSSceneItem> items;
+	for (const QModelIndex &index : view->selectionModel()->selectedIndexes()) {
+		QString sceneUuid = index.data(sceneUuidRole).toString();
+		if (OBSSceneItem item = FindSceneItem(sceneUuid, index.data(itemIdRole).toLongLong())) {
+			items.push_back(item);
+		}
+	}
+	return items;
+}
+
+/* Selects the selected items in the scene too, or the current item when
+ * nothing is selected, so the main window's actions act on them. */
 void SourcesPanel::SyncSelection()
 {
-	OBSSceneItem item = GetSelectedItem();
-	if (item) {
-		SelectExclusively(main->GetCurrentScene(), item);
+	std::vector<OBSSceneItem> selected = GetSelectedItems();
+	if (selected.empty()) {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			selected.push_back(item);
+		}
 	}
+	if (selected.empty()) {
+		return;
+	}
+
+	std::vector<obs_sceneitem_t *> items(selected.begin(), selected.end());
+	SelectOnly(main->GetCurrentScene(), items);
 }
 
 void SourcesPanel::OpenProperties()

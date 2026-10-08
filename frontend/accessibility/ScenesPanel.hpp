@@ -39,6 +39,9 @@ private:
 	void RenameSelectedScene();
 	void RemoveSelectedScene();
 	void OpenSelectedSceneFilters();
+	void DuplicateSelectedScene();
+	void MoveSelectedScene(int offset, bool toEnd);
+	void UpdateMenuState();
 
 	OBSBasic *main;
 	QListView *view;
@@ -52,6 +55,18 @@ private:
 	QAction *renameAction;
 	QAction *removeAction;
 	QAction *filtersAction;
+	QAction *duplicateAction;
+	QAction *moveUpAction;
+	QAction *moveDownAction;
+	QAction *moveToTopAction;
+	QAction *moveToBottomAction;
+	QAction *copyFiltersAction;
+	QAction *pasteFiltersAction;
+	QAction *screenshotAction;
+	QAction *transitionOverrideAction;
+	QAction *multiviewAction;
+	QMenu *orderMenu;
+	QMenu *projectorMenu;
 };
 
 } // namespace OBS::Accessibility

@@ -1,9 +1,11 @@
 #include "ScenesPanel.hpp"
 #include "AccessibleBridge.hpp"
 #include "AccessibleCommon.hpp"
+#include "TransitionDialogs.hpp"
 
 #include <OBSApp.hpp>
 #include <widgets/OBSBasic.hpp>
+#include <widgets/OBSProjector.hpp>
 
 #include <qt-wrappers.hpp>
 
@@ -55,12 +57,57 @@ ScenesPanel::ScenesPanel(OBSBasic *main_, QWidget *parent)
 	renameAction = CreatePanelAction(view, QTStr("Rename"), {QKeySequence(Qt::Key_F2)});
 	removeAction = CreatePanelAction(view, QTStr("Remove"), {QKeySequence(QKeySequence::Delete)});
 	filtersAction = CreatePanelAction(view, QTStr("Filters"));
+	duplicateAction = CreatePanelAction(view, QTStr("Duplicate"), {QKeySequence(Qt::CTRL | Qt::Key_D)});
+	moveUpAction = CreatePanelAction(view, QTStr("MoveUp"), {QKeySequence(Qt::ALT | Qt::Key_Up)});
+	moveDownAction = CreatePanelAction(view, QTStr("MoveDown"), {QKeySequence(Qt::ALT | Qt::Key_Down)});
+	moveToTopAction = CreatePanelAction(view, QTStr("Accessibility.Sources.MoveToTop"),
+					    {QKeySequence(Qt::ALT | Qt::Key_Home)});
+	moveToBottomAction = CreatePanelAction(view, QTStr("Accessibility.Sources.MoveToBottom"),
+					       {QKeySequence(Qt::ALT | Qt::Key_End)});
+	copyFiltersAction = CreatePanelAction(view, QTStr("Copy.Filters"));
+	pasteFiltersAction = CreatePanelAction(view, QTStr("Paste.Filters"));
+	screenshotAction = CreatePanelAction(view, QTStr("Screenshot.Scene"));
+	transitionOverrideAction = CreatePanelAction(view, QTStr("Accessibility.Scenes.TransitionOverride"));
+	multiviewAction = CreatePanelAction(view, QTStr("ShowInMultiview"));
+	multiviewAction->setCheckable(true);
 
 	connect(switchAction, &QAction::triggered, this, &ScenesPanel::SwitchToSelectedScene);
 	connect(addAction, &QAction::triggered, this, [this]() { OBSAccessibleBridge::AddScene(main); });
 	connect(renameAction, &QAction::triggered, this, &ScenesPanel::RenameSelectedScene);
 	connect(removeAction, &QAction::triggered, this, &ScenesPanel::RemoveSelectedScene);
 	connect(filtersAction, &QAction::triggered, this, &ScenesPanel::OpenSelectedSceneFilters);
+	connect(duplicateAction, &QAction::triggered, this, &ScenesPanel::DuplicateSelectedScene);
+	connect(moveUpAction, &QAction::triggered, this, [this]() { MoveSelectedScene(-1, false); });
+	connect(moveDownAction, &QAction::triggered, this, [this]() { MoveSelectedScene(1, false); });
+	connect(moveToTopAction, &QAction::triggered, this, [this]() { MoveSelectedScene(-1, true); });
+	connect(moveToBottomAction, &QAction::triggered, this, [this]() { MoveSelectedScene(1, true); });
+	connect(copyFiltersAction, &QAction::triggered, this, [this]() {
+		if (OBSSource source = GetSelectedScene()) {
+			OBSAccessibleBridge::CopyFilters(main, source);
+		}
+	});
+	connect(pasteFiltersAction, &QAction::triggered, this, [this]() {
+		if (OBSSource source = GetSelectedScene()) {
+			OBSAccessibleBridge::PasteFilters(main, source);
+		}
+	});
+	connect(screenshotAction, &QAction::triggered, this, [this]() {
+		if (OBSSource source = GetSelectedScene()) {
+			OBSAccessibleBridge::Screenshot(main, source);
+		}
+	});
+	connect(transitionOverrideAction, &QAction::triggered, this, [this]() {
+		if (OBSSource source = GetSelectedScene()) {
+			EditSceneTransitionOverride(source, window());
+		}
+	});
+	connect(multiviewAction, &QAction::triggered, this, [this](bool checked) {
+		if (OBSSource source = GetSelectedScene()) {
+			OBSDataAutoRelease settings = obs_source_get_private_settings(source);
+			obs_data_set_bool(settings, "show_in_multiview", checked);
+			OBSProjector::UpdateMultiviewProjectors();
+		}
+	});
 
 	CreateMenu();
 
@@ -103,8 +150,54 @@ void ScenesPanel::CreateMenu()
 	menu->addAction(addAction);
 	menu->addAction(renameAction);
 	menu->addAction(removeAction);
+	menu->addAction(duplicateAction);
 	menu->addSeparator();
+
+	orderMenu = menu->addMenu(QTStr("Basic.MainMenu.Edit.Order"));
+	orderMenu->addAction(moveUpAction);
+	orderMenu->addAction(moveDownAction);
+	orderMenu->addAction(moveToTopAction);
+	orderMenu->addAction(moveToBottomAction);
+	menu->addSeparator();
+
 	menu->addAction(filtersAction);
+	menu->addAction(copyFiltersAction);
+	menu->addAction(pasteFiltersAction);
+	menu->addSeparator();
+
+	projectorMenu = menu->addMenu(QTStr("Projector.Open.Scene"));
+	connect(projectorMenu, &QMenu::aboutToShow, this, [this]() {
+		OBSSource source = GetSelectedScene();
+		FillProjectorMenu(projectorMenu, "Scene", QT_UTF8(obs_source_get_name(source)));
+	});
+	menu->addAction(screenshotAction);
+	menu->addSeparator();
+
+	menu->addAction(transitionOverrideAction);
+	menu->addAction(multiviewAction);
+
+	connect(menu, &QMenu::aboutToShow, this, &ScenesPanel::UpdateMenuState);
+}
+
+/* The items that depend on the selected scene are updated when the menu
+ * opens, from the menu bar or as a context menu. Items with shortcuts stay
+ * enabled, since their shortcuts work without the menu, and do nothing when
+ * no scene is selected. */
+void ScenesPanel::UpdateMenuState()
+{
+	OBSSource source = GetSelectedScene();
+	bool selected = source != nullptr;
+
+	projectorMenu->setEnabled(selected);
+	copyFiltersAction->setEnabled(selected && obs_source_filter_count(source) > 0);
+	pasteFiltersAction->setEnabled(selected && OBSAccessibleBridge::HasCopiedFilters(main));
+	multiviewAction->setEnabled(selected);
+
+	if (selected) {
+		OBSDataAutoRelease settings = obs_source_get_private_settings(source);
+		obs_data_set_default_bool(settings, "show_in_multiview", true);
+		multiviewAction->setChecked(obs_data_get_bool(settings, "show_in_multiview"));
+	}
 }
 
 void ScenesPanel::OnFrontendEvent(enum obs_frontend_event event, void *data)
@@ -266,6 +359,49 @@ void ScenesPanel::OpenSelectedSceneFilters()
 	OBSSource source = GetSelectedScene();
 	if (source) {
 		main->CreateFiltersWindow(source);
+	}
+}
+
+void ScenesPanel::DuplicateSelectedScene()
+{
+	OBSSource source = GetSelectedScene();
+	if (!source) {
+		return;
+	}
+
+	OBSSource copy = DuplicateSceneWithUndo(window(), main, source);
+	if (!copy) {
+		return;
+	}
+
+	/* Move to the copy in the list once the main window has added it. */
+	QString uuid = QT_UTF8(obs_source_get_uuid(copy));
+	QTimer::singleShot(0, this, [this, uuid]() {
+		Refresh();
+		QModelIndexList matches = model->match(model->index(0, 0), uuidRole, uuid, 1, Qt::MatchExactly);
+		if (!matches.isEmpty()) {
+			view->selectionModel()->setCurrentIndex(matches.first(), QItemSelectionModel::ClearAndSelect);
+		}
+	});
+}
+
+void ScenesPanel::MoveSelectedScene(int offset, bool toEnd)
+{
+	OBSSource source = GetSelectedScene();
+	int row = view->currentIndex().row();
+	int count = model->rowCount();
+	if (!source || row < 0) {
+		return;
+	}
+
+	int target = toEnd ? (offset < 0 ? 0 : count - 1) : row + offset;
+	if (target < 0 || target >= count || target == row) {
+		return;
+	}
+
+	if (OBSAccessibleBridge::MoveScene(main, obs_scene_from_source(source), target)) {
+		Refresh();
+		Announce(QTStr("Accessibility.Announce.MovedTo").arg(target + 1).arg(count));
 	}
 }
 

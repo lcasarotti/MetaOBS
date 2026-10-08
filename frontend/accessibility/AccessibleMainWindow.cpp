@@ -1,6 +1,7 @@
 #include "AccessibleMainWindow.hpp"
 #include "AccessibilityModule.hpp"
 #include "AccessibleBridge.hpp"
+#include "AccessibleCommon.hpp"
 #include "AudioPanel.hpp"
 #include "ControlsPanel.hpp"
 #include "ScenesPanel.hpp"
@@ -41,26 +42,6 @@ void ResetMenuBarAccessibility(QMenuBar *bar)
 			QAccessible::deleteAccessibleInterface(QAccessible::uniqueId(iface));
 		}
 	}
-}
-
-/* An action of this window that follows and triggers an action of the main
- * window. Sharing the main window's action instead would tie its accessible
- * interface to the main window's menu, for the reason above. Its shortcuts
- * are only active while this window is, and the main window's while it is. */
-QAction *CreateMirrorAction(QAction *target, QObject *parent)
-{
-	QAction *mirror = new QAction(parent);
-	auto update = [mirror, target]() {
-		mirror->setText(target->text());
-		mirror->setShortcuts(target->shortcuts());
-		mirror->setEnabled(target->isEnabled());
-		mirror->setVisible(target->isVisible());
-	};
-
-	update();
-	QObject::connect(target, &QAction::changed, mirror, update);
-	QObject::connect(mirror, &QAction::triggered, target, &QAction::trigger);
-	return mirror;
 }
 } // namespace
 
@@ -150,6 +131,20 @@ void AccessibleMainWindow::CreateMenus()
 	QAction *standardInterface = viewMenu->addAction(QTStr("Accessibility.Action.StandardInterface"));
 	standardInterface->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_A));
 	connect(standardInterface, &QAction::triggered, this, []() { SwitchToStandardMode(); });
+	viewMenu->addSeparator();
+	AddProjectorMenus(viewMenu);
+
+	/* Shortcuts of the window and its panels, which mirrored main window
+	 * actions must not take. */
+	QList<QKeySequence> reserved;
+	QList<QWidget *> shortcutOwners = {this, scenesPanel->View(), sourcesPanel->View(), audioPanel->View()};
+	for (QWidget *widget : shortcutOwners) {
+		for (QAction *action : widget->actions()) {
+			reserved.append(action->shortcuts());
+		}
+	}
+	reserved.append(standardInterface->shortcut());
+	sourcesPanel->AddMirroredActions(reserved);
 
 	bar->addMenu(scenesPanel->Menu());
 	bar->addMenu(sourcesPanel->Menu());
@@ -161,6 +156,29 @@ void AccessibleMainWindow::CreateMenus()
 	bar->addMenu(OBSAccessibleBridge::SceneCollectionMenu(main));
 	bar->addMenu(OBSAccessibleBridge::ToolsMenu(main));
 	bar->addMenu(OBSAccessibleBridge::HelpMenu(main));
+}
+
+void AccessibleMainWindow::AddProjectorMenus(QMenu *viewMenu)
+{
+	/* In Studio Mode the preview and program have separate projectors. */
+	QMenu *previewMenu = viewMenu->addMenu(QTStr("Projector.Open.Preview"));
+	connect(previewMenu, &QMenu::aboutToShow, this, [previewMenu]() { FillProjectorMenu(previewMenu, "Preview"); });
+
+	QMenu *programMenu = viewMenu->addMenu(QTStr("Projector.Open.Program"));
+	connect(programMenu, &QMenu::aboutToShow, this,
+		[programMenu]() { FillProjectorMenu(programMenu, "StudioProgram"); });
+
+	QMenu *multiviewMenu = viewMenu->addMenu(QTStr("Projector.Open.Multiview"));
+	connect(multiviewMenu, &QMenu::aboutToShow, this,
+		[multiviewMenu]() { FillProjectorMenu(multiviewMenu, "Multiview"); });
+
+	connect(viewMenu, &QMenu::aboutToShow, this, [programMenu]() {
+		programMenu->menuAction()->setVisible(obs_frontend_preview_program_mode_active());
+	});
+
+	viewMenu->addSeparator();
+	QAction *screenshot = viewMenu->addAction(QTStr("Screenshot"));
+	connect(screenshot, &QAction::triggered, this, [this]() { OBSAccessibleBridge::ScreenshotProgram(main); });
 }
 
 void AccessibleMainWindow::ShowAndActivate()
