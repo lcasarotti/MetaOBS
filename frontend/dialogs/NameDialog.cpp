@@ -44,6 +44,7 @@ NameDialog::NameDialog(QWidget *parent) : QDialog(parent)
 
 	userText = new QLineEdit(this);
 	layout->addWidget(userText);
+	label->setBuddy(userText);
 
 	checkbox = new QCheckBox(this);
 	layout->addWidget(checkbox);
