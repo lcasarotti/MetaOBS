@@ -58,6 +58,16 @@ public:
 	/* Shows or hides the main window and its dialogs, as the tray icon does. */
 	static void SetMainWindowShowing(OBSBasic *main, bool showing);
 
+	/* The tray icon's menu, or nullptr when there is no tray. */
+	static QMenu *TrayMenu(OBSBasic *main);
+
+	/* Sets the tray menu's Show/Hide item for a window that is or is not on
+	 * screen. */
+	static void UpdateTrayShowHide(OBSBasic *main, bool showing);
+
+	/* Whether minimizing should hide OBS in the tray, as set in Settings. */
+	static bool MinimizesToTray(OBSBasic *main);
+
 	static void AddScene(OBSBasic *main);
 	static void RemoveScene(OBSBasic *main, OBSScene scene);
 

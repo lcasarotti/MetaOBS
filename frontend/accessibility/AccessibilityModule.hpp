@@ -28,12 +28,22 @@ void LoadLocale();
 void Initialize(OBSBasic *main);
 
 bool IsAccessibleModeActive();
-void SwitchToAccessibleMode();
+/* Shows the accessible window in place of the main window, or with show set
+ * to false, keeps both hidden in the tray. */
+void SwitchToAccessibleMode(bool show = true);
 void SwitchToStandardMode();
 
-/* Called when something asks the main window to show itself (tray icon,
- * exit confirmation). In Accessible Mode, shows the accessible window instead
- * and returns true. */
-bool RedirectShowRequest();
+/* Called when something asks the main window to show or hide itself (tray
+ * icon, minimizing to the tray, exit confirmation). In Accessible Mode, shows
+ * or hides the accessible window instead and returns true. */
+bool RedirectShowingRequest(bool showing);
+
+/* Whether the accessible window is on screen, for the tray icon's Show and
+ * Hide. */
+bool IsAccessibleWindowShowing();
+
+/* Set by the main window before it is shown, when OBS starts in the tray, so
+ * that Accessible Mode starts there too. */
+void SetStartInTray(bool startInTray);
 
 } // namespace OBS::Accessibility

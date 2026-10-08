@@ -130,6 +130,23 @@ void OBSAccessibleBridge::SetMainWindowShowing(OBSBasic *main, bool showing)
 	main->SetShowing(showing);
 }
 
+QMenu *OBSAccessibleBridge::TrayMenu(OBSBasic *main)
+{
+	return main->trayMenu;
+}
+
+void OBSAccessibleBridge::UpdateTrayShowHide(OBSBasic *main, bool showing)
+{
+	if (main->showHide) {
+		main->showHide->setText(QTStr(showing ? "Basic.SystemTray.Hide" : "Basic.SystemTray.Show"));
+	}
+}
+
+bool OBSAccessibleBridge::MinimizesToTray(OBSBasic *main)
+{
+	return main->trayIcon && main->trayIcon->isVisible() && main->sysTrayMinimizeToTray();
+}
+
 void OBSAccessibleBridge::AddScene(OBSBasic *main)
 {
 	main->on_actionAddScene_triggered();

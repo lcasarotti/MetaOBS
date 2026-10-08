@@ -19,6 +19,8 @@
 
 #include "OBSBasic.hpp"
 
+#include <accessibility/AccessibilityModule.hpp>
+
 extern bool opt_minimize_tray;
 
 void OBSBasic::SystemTrayInit()
@@ -92,7 +94,7 @@ void OBSBasic::IconActivated(QSystemTrayIcon::ActivationReason reason)
 	UNUSED_PARAMETER(reason);
 #else
 	if (reason == QSystemTrayIcon::Trigger) {
-		EnablePreviewDisplay(previewEnabled && !isVisible());
+		EnablePreviewDisplay(previewEnabled && !isVisible() && !OBS::Accessibility::IsAccessibleModeActive());
 		ToggleShowHide();
 	}
 #endif

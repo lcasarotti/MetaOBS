@@ -558,7 +558,7 @@ void OBSBasic::on_toggleStatusBar_toggled(bool visible)
 
 void OBSBasic::SetShowing(bool showing)
 {
-	if (showing && OBS::Accessibility::RedirectShowRequest()) {
+	if (OBS::Accessibility::RedirectShowingRequest(showing)) {
 		return;
 	}
 
@@ -628,7 +628,7 @@ void OBSBasic::SetShowing(bool showing)
 
 void OBSBasic::ToggleShowHide()
 {
-	bool showing = isVisible();
+	bool showing = isVisible() || OBS::Accessibility::IsAccessibleWindowShowing();
 	if (showing) {
 		/* check for modal dialogs */
 		EnumDialogs();

@@ -190,6 +190,9 @@ void AccessibleMainWindow::AddProjectorMenus(QMenu *viewMenu)
 void AccessibleMainWindow::ShowAndActivate()
 {
 	ResetMenuBarAccessibility(menuBar());
+	if (isMinimized()) {
+		setWindowState((windowState() & ~Qt::WindowMinimized) | Qt::WindowActive);
+	}
 	show();
 	raise();
 	activateWindow();
@@ -247,6 +250,17 @@ void AccessibleMainWindow::hideEvent(QHideEvent *event)
 		ResetMenuBarAccessibility(main->menuBar());
 	}
 	QMainWindow::hideEvent(event);
+}
+
+/* Minimizing hides the window in the tray when the settings ask for it, as
+ * with the main window. */
+void AccessibleMainWindow::changeEvent(QEvent *event)
+{
+	bool minimized = event->type() == QEvent::WindowStateChange && isMinimized();
+	if (minimized && OBSAccessibleBridge::MinimizesToTray(main)) {
+		QTimer::singleShot(0, main, [main = main]() { OBSAccessibleBridge::SetMainWindowShowing(main, false); });
+	}
+	QMainWindow::changeEvent(event);
 }
 
 /* Dialogs are owned by the hidden main window, so when one closes the

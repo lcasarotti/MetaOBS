@@ -29,6 +29,7 @@ StartupMode startupMode = StartupMode::FromSettings;
 OBSBasic *mainWindow = nullptr;
 QPointer<AccessibleMainWindow> accessibleWindow;
 bool accessibleModeActive = false;
+bool startInTray = false;
 
 void AddLocaleFile(const std::string &locale)
 {
@@ -53,6 +54,31 @@ void AddModeActionToMainWindow(OBSBasic *main)
 	QMenu *viewMenu = OBSAccessibleBridge::ViewMenu(main);
 	viewMenu->addSeparator();
 	viewMenu->addAction(action);
+}
+
+/* A checkable item in the tray icon's menu, so the mode can be changed while
+ * OBS is hidden in the tray. */
+void AddModeActionToTray(OBSBasic *main)
+{
+	QMenu *trayMenu = OBSAccessibleBridge::TrayMenu(main);
+	if (!trayMenu) {
+		return;
+	}
+
+	QAction *action = new QAction(QTStr("Accessibility.Action.AccessibleMode"), trayMenu);
+	action->setCheckable(true);
+	QObject::connect(action, &QAction::triggered, main, [](bool checked) {
+		if (checked) {
+			SwitchToAccessibleMode();
+		} else {
+			SwitchToStandardMode();
+		}
+	});
+	QObject::connect(trayMenu, &QMenu::aboutToShow, action,
+			 [action]() { action->setChecked(IsAccessibleModeActive()); });
+
+	QList<QAction *> actions = trayMenu->actions();
+	trayMenu->insertAction(actions.size() > 1 ? actions[1] : nullptr, action);
 }
 } // namespace
 
@@ -104,8 +130,10 @@ void Initialize(OBSBasic *main)
 
 	AddModeActionToMainWindow(main);
 
+	AddModeActionToTray(main);
+
 	if (ShouldStartInAccessibleMode()) {
-		SwitchToAccessibleMode();
+		SwitchToAccessibleMode(!startInTray);
 	}
 }
 
@@ -114,11 +142,17 @@ bool IsAccessibleModeActive()
 	return accessibleModeActive;
 }
 
-void SwitchToAccessibleMode()
+void SwitchToAccessibleMode(bool show)
 {
 	if (!mainWindow) {
 		return;
 	}
+
+	/* Hides the main window and its dialogs, and stops drawing its
+	 * preview. Does nothing if it is already hidden. This comes first,
+	 * since requests to hide go to the accessible window once the mode is
+	 * active. */
+	OBSAccessibleBridge::SetMainWindowShowing(mainWindow, false);
 
 	accessibleModeActive = true;
 
@@ -126,11 +160,10 @@ void SwitchToAccessibleMode()
 		accessibleWindow = new AccessibleMainWindow(mainWindow);
 	}
 
-	/* Hides the main window and its dialogs, and stops drawing its
-	 * preview. Does nothing if it is already hidden. */
-	OBSAccessibleBridge::SetMainWindowShowing(mainWindow, false);
-
-	accessibleWindow->ShowAndActivate();
+	if (show) {
+		accessibleWindow->ShowAndActivate();
+	}
+	OBSAccessibleBridge::UpdateTrayShowHide(mainWindow, show);
 	blog(LOG_INFO, "[Accessibility] Switched to Accessible Mode");
 }
 
@@ -151,14 +184,29 @@ void SwitchToStandardMode()
 	blog(LOG_INFO, "[Accessibility] Switched to the standard interface");
 }
 
-bool RedirectShowRequest()
+bool RedirectShowingRequest(bool showing)
 {
 	if (!accessibleModeActive || !accessibleWindow) {
 		return false;
 	}
 
-	accessibleWindow->ShowAndActivate();
+	if (showing) {
+		accessibleWindow->ShowAndActivate();
+	} else {
+		accessibleWindow->hide();
+	}
+	OBSAccessibleBridge::UpdateTrayShowHide(mainWindow, showing);
 	return true;
+}
+
+bool IsAccessibleWindowShowing()
+{
+	return accessibleModeActive && accessibleWindow && accessibleWindow->isVisible();
+}
+
+void SetStartInTray(bool startInTray_)
+{
+	startInTray = startInTray_;
 }
 
 } // namespace OBS::Accessibility

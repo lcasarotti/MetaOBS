@@ -1046,6 +1046,7 @@ void OBSBasic::OBSInit()
 	bool sysTrayWhenStarted = config_get_bool(App()->GetUserConfig(), "BasicWindow", "SysTrayWhenStarted");
 	bool hideWindowOnStart = QSystemTrayIcon::isSystemTrayAvailable() && sysTrayEnabled &&
 				 (opt_minimize_tray || sysTrayWhenStarted);
+	OBS::Accessibility::SetStartInTray(hideWindowOnStart);
 	hideWindowOnStart = hideWindowOnStart || OBS::Accessibility::ShouldStartInAccessibleMode();
 
 #ifdef _WIN32
