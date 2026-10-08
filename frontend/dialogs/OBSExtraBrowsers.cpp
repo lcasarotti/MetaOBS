@@ -3,6 +3,8 @@
 
 #include <utility/ExtraBrowsersDelegate.hpp>
 
+#include <OBSApp.hpp>
+
 #include "moc_OBSExtraBrowsers.cpp"
 
 OBSExtraBrowsers::OBSExtraBrowsers(QWidget *parent) : QDialog(parent), ui(new Ui::OBSExtraBrowsers)
@@ -20,6 +22,7 @@ OBSExtraBrowsers::OBSExtraBrowsers(QWidget *parent) : QDialog(parent), ui(new Ui
 	ui->table->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeMode::Stretch);
 	ui->table->horizontalHeader()->setSectionResizeMode((int)Column::Delete, QHeaderView::ResizeMode::Fixed);
 	ui->table->setEditTriggers(QAbstractItemView::EditTrigger::CurrentChanged);
+	ui->table->setAccessibleName(QTStr("ExtraBrowsers"));
 }
 
 OBSExtraBrowsers::~OBSExtraBrowsers() {}

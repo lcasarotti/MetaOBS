@@ -13,6 +13,7 @@ QWidget *ExtraBrowsersDelegate::createEditor(QWidget *parent, const QStyleOption
 					     const QModelIndex &index) const
 {
 	QLineEdit *text = new EditWidget(parent, index);
+	text->setAccessibleName(model->headerData(index.column(), Qt::Horizontal, Qt::DisplayRole).toString());
 	text->installEventFilter(const_cast<ExtraBrowsersDelegate *>(this));
 	text->setSizePolicy(QSizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding,
 					QSizePolicy::ControlType::LineEdit));

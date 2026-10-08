@@ -102,6 +102,7 @@ void ExtraBrowsersModel::AddDeleteButton(int idx)
 	del->setProperty("class", "icon-trash");
 	del->setObjectName("extraPanelDelete");
 	del->setMinimumSize(QSize(20, 20));
+	del->setAccessibleName(QTStr("Remove") + " " + items[idx].title);
 	connect(del, &QPushButton::clicked, this, &ExtraBrowsersModel::DeleteItem);
 
 	widget->setIndexWidget(index, del);
