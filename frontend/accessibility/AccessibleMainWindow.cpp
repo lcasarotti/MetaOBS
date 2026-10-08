@@ -4,6 +4,7 @@
 #include "AccessibleCommon.hpp"
 #include "AudioPanel.hpp"
 #include "CommandPalette.hpp"
+#include "DocksDialog.hpp"
 #include "ControlsPanel.hpp"
 #include "ScenesPanel.hpp"
 #include "SourcesPanel.hpp"
@@ -136,6 +137,8 @@ void AccessibleMainWindow::CreateMenus()
 	commandPalette->setShortcut(QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_P));
 	connect(commandPalette, &QAction::triggered, this, [this]() { CommandPalette::Run(menuBar(), this); });
 	CommandPalette::Exclude(commandPalette);
+	QAction *docks = viewMenu->addAction(QTStr("Accessibility.Docks.Action"));
+	connect(docks, &QAction::triggered, this, [this]() { DocksDialog::Open(main, this); });
 	viewMenu->addSeparator();
 	AddProjectorMenus(viewMenu);
 

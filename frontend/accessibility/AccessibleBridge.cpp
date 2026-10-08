@@ -130,6 +130,45 @@ void OBSAccessibleBridge::SetMainWindowShowing(OBSBasic *main, bool showing)
 	main->SetShowing(showing);
 }
 
+QList<QDockWidget *> OBSAccessibleBridge::PluginDocks(OBSBasic *main)
+{
+	QList<QDockWidget *> docks;
+	for (const std::shared_ptr<QDockWidget> &dock : main->extraDocks) {
+		docks.append(dock.get());
+	}
+	for (const QPointer<QDockWidget> &dock : main->extraCustomDocks) {
+		if (dock) {
+			docks.append(dock);
+		}
+	}
+#ifdef BROWSER_AVAILABLE
+	for (const std::shared_ptr<QDockWidget> &dock : main->extraBrowserDocks) {
+		docks.append(dock.get());
+	}
+#endif
+	return docks;
+}
+
+bool OBSAccessibleBridge::ManageBrowserDocks(OBSBasic *main)
+{
+#ifdef BROWSER_AVAILABLE
+	main->ManageExtraBrowserDocks();
+	return true;
+#else
+	UNUSED_PARAMETER(main);
+	return false;
+#endif
+}
+
+bool OBSAccessibleBridge::HasBrowserDocks()
+{
+#ifdef BROWSER_AVAILABLE
+	return true;
+#else
+	return false;
+#endif
+}
+
 QMenu *OBSAccessibleBridge::TrayMenu(OBSBasic *main)
 {
 	return main->trayMenu;

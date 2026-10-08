@@ -33,6 +33,8 @@ target_sources(
     accessibility/ControlsPanel.hpp
     accessibility/DialogFixer.cpp
     accessibility/DialogFixer.hpp
+    accessibility/DocksDialog.cpp
+    accessibility/DocksDialog.hpp
     accessibility/LayoutMode.cpp
     accessibility/LayoutMode.hpp
     accessibility/NvdaController.cpp

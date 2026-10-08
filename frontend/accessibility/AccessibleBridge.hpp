@@ -9,6 +9,7 @@
 
 class OBSBasic;
 class QAction;
+class QDockWidget;
 class QListWidget;
 class QMenu;
 
@@ -57,6 +58,14 @@ public:
 
 	/* Shows or hides the main window and its dialogs, as the tray icon does. */
 	static void SetMainWindowShowing(OBSBasic *main, bool showing);
+
+	/* The docks added by plugins and the custom browser docks. */
+	static QList<QDockWidget *> PluginDocks(OBSBasic *main);
+
+	/* Opens the dialog that adds and removes custom browser docks, when
+	 * OBS is built with browser support, and returns whether it can. */
+	static bool ManageBrowserDocks(OBSBasic *main);
+	static bool HasBrowserDocks();
 
 	/* The tray icon's menu, or nullptr when there is no tray. */
 	static QMenu *TrayMenu(OBSBasic *main);
