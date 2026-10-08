@@ -42,6 +42,26 @@ void ResetMenuBarAccessibility(QMenuBar *bar)
 		}
 	}
 }
+
+/* An action of this window that follows and triggers an action of the main
+ * window. Sharing the main window's action instead would tie its accessible
+ * interface to the main window's menu, for the reason above. Its shortcuts
+ * are only active while this window is, and the main window's while it is. */
+QAction *CreateMirrorAction(QAction *target, QObject *parent)
+{
+	QAction *mirror = new QAction(parent);
+	auto update = [mirror, target]() {
+		mirror->setText(target->text());
+		mirror->setShortcuts(target->shortcuts());
+		mirror->setEnabled(target->isEnabled());
+		mirror->setVisible(target->isVisible());
+	};
+
+	update();
+	QObject::connect(target, &QAction::changed, mirror, update);
+	QObject::connect(mirror, &QAction::triggered, target, &QAction::trigger);
+	return mirror;
+}
 } // namespace
 
 AccessibleMainWindow::AccessibleMainWindow(OBSBasic *main_) : QMainWindow(nullptr), main(main_)
@@ -123,8 +143,8 @@ void AccessibleMainWindow::CreateMenus()
 	bar->addMenu(OBSAccessibleBridge::FileMenu(main));
 
 	QMenu *editMenu = bar->addMenu(QTStr("Basic.MainMenu.Edit"));
-	editMenu->addAction(OBSAccessibleBridge::UndoAction(main));
-	editMenu->addAction(OBSAccessibleBridge::RedoAction(main));
+	editMenu->addAction(CreateMirrorAction(OBSAccessibleBridge::UndoAction(main), editMenu));
+	editMenu->addAction(CreateMirrorAction(OBSAccessibleBridge::RedoAction(main), editMenu));
 
 	QMenu *viewMenu = bar->addMenu(QTStr("Basic.MainMenu.View"));
 	QAction *standardInterface = viewMenu->addAction(QTStr("Accessibility.Action.StandardInterface"));
