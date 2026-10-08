@@ -214,6 +214,21 @@ void ExtraBrowsersModel::Apply()
 	Reset();
 }
 
+/* Moves focus from the table to the next or previous control of the dialog,
+ * so the keyboard can reach its buttons. */
+static void LeaveTable(QWidget *table, bool forward)
+{
+	QWidget *next = table;
+	do {
+		next = forward ? next->nextInFocusChain() : next->previousInFocusChain();
+	} while (next != table && (table->isAncestorOf(next) || !next->isVisible() || !next->isEnabled() ||
+				   (next->focusPolicy() & Qt::TabFocus) != Qt::TabFocus));
+
+	if (next != table) {
+		next->setFocus(forward ? Qt::TabFocusReason : Qt::BacktabFocusReason);
+	}
+}
+
 void ExtraBrowsersModel::TabSelection(bool forward)
 {
 	QListView *widget = reinterpret_cast<QListView *>(parent());
@@ -227,6 +242,7 @@ void ExtraBrowsersModel::TabSelection(bool forward)
 	case (int)Column::Title:
 		if (!forward) {
 			if (row == 0) {
+				LeaveTable(widget, false);
 				return;
 			}
 
@@ -239,6 +255,7 @@ void ExtraBrowsersModel::TabSelection(bool forward)
 	case (int)Column::Url:
 		if (forward) {
 			if (row == items.size()) {
+				LeaveTable(widget, true);
 				return;
 			}
 
