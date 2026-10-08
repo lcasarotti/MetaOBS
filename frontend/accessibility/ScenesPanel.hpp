@@ -3,6 +3,7 @@
 #include <obs-frontend-api.h>
 #include <obs.hpp>
 
+#include <QElapsedTimer>
 #include <QGroupBox>
 
 class OBSBasic;
@@ -50,6 +51,12 @@ private:
 	QTimer *refreshTimer;
 	QMenu *menu;
 	bool collectionLoading = false;
+
+	/* The scene that was in the program before the last change, to say
+	 * where a transition came from, and when it was replaced. */
+	OBSWeakSource programScene;
+	OBSWeakSource replacedProgramScene;
+	QElapsedTimer programChangeTimer;
 
 	QAction *switchAction;
 	QAction *addAction;

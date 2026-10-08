@@ -22,6 +22,10 @@
 namespace OBS::Accessibility {
 
 namespace {
+/* After a transition in Studio Mode, the preview takes the scene that was in
+ * the program when scenes are swapped. */
+constexpr qint64 swapWindowMs = 1000;
+
 constexpr int uuidRole = Qt::UserRole;
 
 /* Opens the scene menu next to the current item, also from the keyboard. */
@@ -134,6 +138,9 @@ ScenesPanel::ScenesPanel(OBSBasic *main_, QWidget *parent)
 
 	obs_frontend_add_event_callback(OnFrontendEvent, this);
 
+	OBSSourceAutoRelease program = obs_frontend_get_current_scene();
+	programScene = OBSGetWeakRef(program);
+
 	Refresh();
 }
 
@@ -216,28 +223,54 @@ void ScenesPanel::HandleFrontendEvent(enum obs_frontend_event event)
 	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGING:
 		collectionLoading = true;
 		break;
-	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED:
+	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED: {
 		collectionLoading = false;
+		OBSSourceAutoRelease program = obs_frontend_get_current_scene();
+		programScene = OBSGetWeakRef(program);
+		replacedProgramScene = nullptr;
 		ScheduleRefresh();
 		break;
-	case OBS_FRONTEND_EVENT_SCENE_CHANGED:
+	}
+	case OBS_FRONTEND_EVENT_SCENE_CHANGED: {
 		ScheduleRefresh();
-		if (!collectionLoading) {
-			OBSSourceAutoRelease scene = obs_frontend_get_current_scene();
-			if (scene) {
-				Announce(QTStr("Accessibility.Announce.SceneLive").arg(obs_source_get_name(scene)));
-			}
+		OBSSourceAutoRelease scene = obs_frontend_get_current_scene();
+		OBSSource previous = OBSGetStrongRef(programScene);
+		programScene = OBSGetWeakRef(scene);
+		replacedProgramScene = OBSGetWeakRef(previous);
+		programChangeTimer.start();
+
+		if (collectionLoading || !scene) {
+			break;
+		}
+		if (previous && previous.Get() != scene.Get()) {
+			QString from = QT_UTF8(obs_source_get_name(previous));
+			QString to = QT_UTF8(obs_source_get_name(scene));
+			Announce(QTStr("Accessibility.Announce.SceneTransition").arg(from, to));
+		} else {
+			Announce(QTStr("Accessibility.Announce.SceneLive").arg(obs_source_get_name(scene)));
 		}
 		break;
-	case OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED:
+	}
+	case OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED: {
 		ScheduleRefresh();
-		if (!collectionLoading && obs_frontend_preview_program_mode_active()) {
-			OBSSourceAutoRelease scene = obs_frontend_get_current_preview_scene();
-			if (scene) {
-				Announce(QTStr("Accessibility.Announce.ScenePreview").arg(obs_source_get_name(scene)));
-			}
+		if (collectionLoading || !obs_frontend_preview_program_mode_active()) {
+			break;
+		}
+
+		OBSSourceAutoRelease scene = obs_frontend_get_current_preview_scene();
+		if (!scene) {
+			break;
+		}
+
+		/* The transition was already announced from the scene that
+		 * now goes back to the preview. */
+		bool swapped = OBSGetStrongRef(replacedProgramScene).Get() == scene.Get() &&
+			       programChangeTimer.isValid() && programChangeTimer.elapsed() < swapWindowMs;
+		if (!swapped) {
+			Announce(QTStr("Accessibility.Announce.ScenePreview").arg(obs_source_get_name(scene)));
 		}
 		break;
+	}
 	case OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED:
 	case OBS_FRONTEND_EVENT_STUDIO_MODE_ENABLED:
 	case OBS_FRONTEND_EVENT_STUDIO_MODE_DISABLED:
