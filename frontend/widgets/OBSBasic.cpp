@@ -27,6 +27,8 @@
 
 #include <obs-module.h>
 
+#include <accessibility/AccessibilityModule.hpp>
+
 #ifdef YOUTUBE_ENABLED
 #include <docks/YouTubeAppDock.hpp>
 #endif
@@ -1044,6 +1046,7 @@ void OBSBasic::OBSInit()
 	bool sysTrayWhenStarted = config_get_bool(App()->GetUserConfig(), "BasicWindow", "SysTrayWhenStarted");
 	bool hideWindowOnStart = QSystemTrayIcon::isSystemTrayAvailable() && sysTrayEnabled &&
 				 (opt_minimize_tray || sysTrayWhenStarted);
+	hideWindowOnStart = hideWindowOnStart || OBS::Accessibility::ShouldStartInAccessibleMode();
 
 #ifdef _WIN32
 	SetWin32DropStyle(this);

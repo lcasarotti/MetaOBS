@@ -372,10 +372,10 @@ void OBSBasic::StreamingStop(int code, QString last_error)
 						   : QTStr("Output.StreamEncodeError.Msg.LastError").arg(last_error);
 		OBSMessageBox::information(this, QTStr("Output.StreamEncodeError.Title"), msg);
 
-	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
+	} else if (code != OBS_OUTPUT_SUCCESS && IsUserFacing()) {
 		OBSMessageBox::information(this, QTStr("Output.ConnectFail.Title"), QT_UTF8(errorMessage));
 
-	} else if (code != OBS_OUTPUT_SUCCESS && !isVisible()) {
+	} else if (code != OBS_OUTPUT_SUCCESS && !IsUserFacing()) {
 		SysTrayNotify(QT_UTF8(errorDescription), QSystemTrayIcon::Warning);
 	}
 
@@ -394,7 +394,7 @@ void OBSBasic::StreamActionTriggered()
 		bool confirm = config_get_bool(App()->GetUserConfig(), "BasicWindow", "WarnBeforeStoppingStream");
 
 #ifdef YOUTUBE_ENABLED
-		if (isVisible() && auth && IsYouTubeService(auth->service()) && autoStopBroadcast) {
+		if (IsUserFacing() && auth && IsYouTubeService(auth->service()) && autoStopBroadcast) {
 			QMessageBox::StandardButton button = OBSMessageBox::question(
 				this, QTStr("ConfirmStop.Title"), QTStr("YouTube.Actions.AutoStopStreamingWarning"),
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -406,7 +406,7 @@ void OBSBasic::StreamActionTriggered()
 			confirm = false;
 		}
 #endif
-		if (confirm && isVisible()) {
+		if (confirm && IsUserFacing()) {
 			QMessageBox::StandardButton button =
 				OBSMessageBox::question(this, QTStr("ConfirmStop.Title"), QTStr("ConfirmStop.Text"),
 							QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -449,14 +449,14 @@ void OBSBasic::StreamActionTriggered()
 			}
 		}
 
-		if (bwtest && isVisible()) {
+		if (bwtest && IsUserFacing()) {
 			QMessageBox::StandardButton button = OBSMessageBox::question(this, QTStr("ConfirmBWTest.Title"),
 										     QTStr("ConfirmBWTest.Text"));
 
 			if (button == QMessageBox::No) {
 				return;
 			}
-		} else if (confirm && isVisible()) {
+		} else if (confirm && IsUserFacing()) {
 			QMessageBox::StandardButton button =
 				OBSMessageBox::question(this, QTStr("ConfirmStart.Title"), QTStr("ConfirmStart.Text"),
 							QMessageBox::Yes | QMessageBox::No, QMessageBox::No);

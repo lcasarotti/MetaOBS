@@ -7,14 +7,26 @@ target_sources(
     accessibility/AccessibilityModule.hpp
     accessibility/AccessibilitySettingsWidget.cpp
     accessibility/AccessibilitySettingsWidget.hpp
+    accessibility/AccessibleBridge.cpp
+    accessibility/AccessibleBridge.hpp
+    accessibility/AccessibleCommon.cpp
+    accessibility/AccessibleCommon.hpp
+    accessibility/AccessibleMainWindow.cpp
+    accessibility/AccessibleMainWindow.hpp
     accessibility/AccessibleSettings.cpp
     accessibility/AccessibleSettings.hpp
     accessibility/Announcer.cpp
     accessibility/Announcer.hpp
+    accessibility/ControlsPanel.cpp
+    accessibility/ControlsPanel.hpp
     accessibility/DialogFixer.cpp
     accessibility/DialogFixer.hpp
     accessibility/NvdaController.cpp
     accessibility/NvdaController.hpp
     accessibility/OutputAnnouncements.cpp
     accessibility/OutputAnnouncements.hpp
+    accessibility/ScenesPanel.cpp
+    accessibility/ScenesPanel.hpp
+    accessibility/SourcesPanel.cpp
+    accessibility/SourcesPanel.hpp
 )

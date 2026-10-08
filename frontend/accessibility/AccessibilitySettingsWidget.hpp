@@ -26,6 +26,7 @@ private:
 	void UpdateSpeechBackendDescription();
 	void TestAnnouncement(int delayMs);
 
+	QCheckBox *startInAccessibleMode = nullptr;
 	QComboBox *announceLevel = nullptr;
 	QCheckBox *announceOutputs = nullptr;
 	QCheckBox *announceStatusMessages = nullptr;

@@ -191,19 +191,19 @@ void OBSBasic::RecordingStop(int code, QString last_error)
 
 	blog(LOG_INFO, RECORDING_STOP);
 
-	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
+	if (code == OBS_OUTPUT_UNSUPPORTED && IsUserFacing()) {
 		OBSMessageBox::critical(this, QTStr("Output.RecordFail.Title"), QTStr("Output.RecordFail.Unsupported"));
 
-	} else if (code == OBS_OUTPUT_ENCODE_ERROR && isVisible()) {
+	} else if (code == OBS_OUTPUT_ENCODE_ERROR && IsUserFacing()) {
 		QString msg = last_error.isEmpty()
 				      ? QTStr("Output.RecordError.EncodeErrorMsg")
 				      : QTStr("Output.RecordError.EncodeErrorMsg.LastError").arg(last_error);
 		OBSMessageBox::warning(this, QTStr("Output.RecordError.Title"), msg);
 
-	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
+	} else if (code == OBS_OUTPUT_NO_SPACE && IsUserFacing()) {
 		OBSMessageBox::warning(this, QTStr("Output.RecordNoSpace.Title"), QTStr("Output.RecordNoSpace.Msg"));
 
-	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
+	} else if (code != OBS_OUTPUT_SUCCESS && IsUserFacing()) {
 
 		const char *errorDescription;
 		DStr errorMessage;
@@ -219,13 +219,13 @@ void OBSBasic::RecordingStop(int code, QString last_error)
 
 		OBSMessageBox::critical(this, QTStr("Output.RecordError.Title"), QT_UTF8(errorMessage));
 
-	} else if (code == OBS_OUTPUT_UNSUPPORTED && !isVisible()) {
+	} else if (code == OBS_OUTPUT_UNSUPPORTED && !IsUserFacing()) {
 		SysTrayNotify(QTStr("Output.RecordFail.Unsupported"), QSystemTrayIcon::Warning);
 
-	} else if (code == OBS_OUTPUT_NO_SPACE && !isVisible()) {
+	} else if (code == OBS_OUTPUT_NO_SPACE && !IsUserFacing()) {
 		SysTrayNotify(QTStr("Output.RecordNoSpace.Msg"), QSystemTrayIcon::Warning);
 
-	} else if (code != OBS_OUTPUT_SUCCESS && !isVisible()) {
+	} else if (code != OBS_OUTPUT_SUCCESS && !IsUserFacing()) {
 		SysTrayNotify(QTStr("Output.RecordError.Msg"), QSystemTrayIcon::Warning);
 	} else if (code == OBS_OUTPUT_SUCCESS) {
 		if (outputHandler) {
@@ -259,7 +259,7 @@ void OBSBasic::RecordActionTriggered()
 	if (outputHandler->RecordingActive()) {
 		bool confirm = config_get_bool(App()->GetUserConfig(), "BasicWindow", "WarnBeforeStoppingRecord");
 
-		if (confirm && isVisible()) {
+		if (confirm && IsUserFacing()) {
 			QMessageBox::StandardButton button = OBSMessageBox::question(
 				this, QTStr("ConfirmStopRecord.Title"), QTStr("ConfirmStopRecord.Text"),
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);

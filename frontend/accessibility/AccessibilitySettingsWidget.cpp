@@ -34,6 +34,11 @@ AccessibilitySettingsWidget::AccessibilitySettingsWidget(QWidget *parent)
 	QFormLayout *layout = new QFormLayout(this);
 	layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 
+	startInAccessibleMode = new QCheckBox(QTStr("Accessibility.Settings.StartInAccessibleMode"), this);
+	startInAccessibleMode->setAccessibleDescription(
+		QTStr("Accessibility.Settings.StartInAccessibleMode.Description"));
+	layout->addRow(startInAccessibleMode);
+
 	announceLevel = CreateComboBox(this, {"Accessibility.Settings.AnnounceLevel.Off",
 					      "Accessibility.Settings.AnnounceLevel.Essential",
 					      "Accessibility.Settings.AnnounceLevel.Normal",
@@ -64,6 +69,7 @@ AccessibilitySettingsWidget::AccessibilitySettingsWidget(QWidget *parent)
 	testButtons->addStretch();
 	layout->addRow(testButtons);
 
+	connect(startInAccessibleMode, &QCheckBox::toggled, this, &AccessibilitySettingsWidget::changed);
 	connect(announceLevel, &QComboBox::currentIndexChanged, this, &AccessibilitySettingsWidget::changed);
 	connect(announceOutputs, &QCheckBox::toggled, this, &AccessibilitySettingsWidget::changed);
 	connect(announceStatusMessages, &QCheckBox::toggled, this, &AccessibilitySettingsWidget::changed);
@@ -77,11 +83,13 @@ AccessibilitySettingsWidget::AccessibilitySettingsWidget(QWidget *parent)
 
 void AccessibilitySettingsWidget::Load()
 {
+	QSignalBlocker blockStartMode(startInAccessibleMode);
 	QSignalBlocker blockLevel(announceLevel);
 	QSignalBlocker blockOutputs(announceOutputs);
 	QSignalBlocker blockStatusMessages(announceStatusMessages);
 	QSignalBlocker blockBackend(speechBackend);
 
+	startInAccessibleMode->setChecked(Settings::GetAccessibleMode());
 	announceLevel->setCurrentIndex(static_cast<int>(Settings::GetAnnounceLevel()));
 	announceOutputs->setChecked(Settings::GetAnnounceOutputs());
 	announceStatusMessages->setChecked(Settings::GetAnnounceStatusMessages());
@@ -92,6 +100,7 @@ void AccessibilitySettingsWidget::Load()
 
 void AccessibilitySettingsWidget::Save()
 {
+	Settings::SetAccessibleMode(startInAccessibleMode->isChecked());
 	Settings::SetAnnounceLevel(static_cast<AnnounceLevel>(announceLevel->currentIndex()));
 	Settings::SetAnnounceOutputs(announceOutputs->isChecked());
 	Settings::SetAnnounceStatusMessages(announceStatusMessages->isChecked());

@@ -17,6 +17,8 @@
 
 #include <OBSApp.hpp>
 
+#include <accessibility/AccessibilityModule.hpp>
+
 #include <components/VolumeAccessibleInterface.hpp>
 #ifdef __APPLE__
 #include <dialogs/OBSPermissions.hpp>
@@ -1011,6 +1013,12 @@ int main(int argc, char *argv[])
 		} else if (arg_is(argv[i], "--studio-mode", nullptr)) {
 			opt_studio_mode = true;
 
+		} else if (arg_is(argv[i], "--accessible-mode", nullptr)) {
+			OBS::Accessibility::SetStartupMode(OBS::Accessibility::StartupMode::Accessible);
+
+		} else if (arg_is(argv[i], "--standard-mode", nullptr)) {
+			OBS::Accessibility::SetStartupMode(OBS::Accessibility::StartupMode::Standard);
+
 		} else if (arg_is(argv[i], "--allow-opengl", nullptr)) {
 			opt_allow_opengl = true;
 
@@ -1035,6 +1043,8 @@ int main(int argc, char *argv[])
 				"--profile <string>: Use specific profile.\n"
 				"--scene <string>: Start with specific scene.\n\n"
 				"--studio-mode: Enable studio mode.\n"
+				"--accessible-mode: Start with the screen reader friendly window.\n"
+				"--standard-mode: Start with the standard window.\n"
 				"--minimize-to-tray: Minimize to system tray.\n"
 #if ALLOW_PORTABLE_MODE
 				"--portable, -p: Use portable mode.\n"

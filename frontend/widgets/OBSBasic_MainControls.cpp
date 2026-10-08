@@ -20,6 +20,8 @@
 #include "OBSBasic.hpp"
 #include "OBSBasicStats.hpp"
 
+#include <accessibility/AccessibilityModule.hpp>
+
 #include <dialogs/LogUploadDialog.hpp>
 #include <dialogs/OBSAbout.hpp>
 #include <dialogs/OBSBasicAdvAudio.hpp>
@@ -556,6 +558,10 @@ void OBSBasic::on_toggleStatusBar_toggled(bool visible)
 
 void OBSBasic::SetShowing(bool showing)
 {
+	if (showing && OBS::Accessibility::RedirectShowRequest()) {
+		return;
+	}
+
 	if (!showing && isVisible()) {
 		config_set_string(App()->GetUserConfig(), "BasicWindow", "geometry",
 				  saveGeometry().toBase64().constData());

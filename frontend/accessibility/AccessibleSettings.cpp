@@ -11,6 +11,7 @@ namespace OBS::Accessibility::Settings {
 namespace {
 constexpr const char *section = "Accessibility";
 
+constexpr const char *accessibleModeKey = "AccessibleMode";
 constexpr const char *announceLevelKey = "AnnounceLevel";
 constexpr const char *announceOutputsKey = "AnnounceOutputs";
 constexpr const char *announceStatusMessagesKey = "AnnounceStatusMessages";
@@ -26,10 +27,21 @@ void SetDefaults()
 {
 	config_t *config = GetConfig();
 
+	config_set_default_bool(config, section, accessibleModeKey, false);
 	config_set_default_int(config, section, announceLevelKey, static_cast<int>(AnnounceLevel::Normal));
 	config_set_default_bool(config, section, announceOutputsKey, true);
 	config_set_default_bool(config, section, announceStatusMessagesKey, true);
 	config_set_default_int(config, section, speechBackendKey, static_cast<int>(SpeechBackend::Automatic));
+}
+
+bool GetAccessibleMode()
+{
+	return config_get_bool(GetConfig(), section, accessibleModeKey);
+}
+
+void SetAccessibleMode(bool enabled)
+{
+	config_set_bool(GetConfig(), section, accessibleModeKey, enabled);
 }
 
 AnnounceLevel GetAnnounceLevel()

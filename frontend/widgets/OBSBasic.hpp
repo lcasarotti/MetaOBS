@@ -206,6 +206,7 @@ class OBSBasic : public OBSMainWindow {
 			   DESIGNABLE true)
 
 	friend class OBSAbout;
+	friend class OBSAccessibleBridge;
 	friend class OBSBasicPreview;
 	friend class OBSBasicStatusBar;
 	friend class OBSBasicSourceSelect;
@@ -298,6 +299,11 @@ public:
 	/* `undo_s` needs to be declared after `ui` to prevent an uninitialized
 	 * warning for `ui` while initializing `undo_s`. */
 	undo_stack undo_s;
+
+	/* Whether the user can see OBS: either this window or the accessible
+	 * window that replaces it. Use it instead of isVisible() to decide
+	 * whether to ask the user something or show an error dialog. */
+	bool IsUserFacing() const;
 
 	explicit OBSBasic(QWidget *parent = 0);
 	virtual ~OBSBasic();

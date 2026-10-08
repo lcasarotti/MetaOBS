@@ -1,0 +1,49 @@
+#pragma once
+
+#include <obs-frontend-api.h>
+
+#include <QMainWindow>
+#include <QPointer>
+
+class OBSBasic;
+
+namespace OBS::Accessibility {
+
+class ControlsPanel;
+class ScenesPanel;
+class SourcesPanel;
+
+/* Main window of Accessible Mode, built only from standard Qt controls. It
+ * replaces OBSBasic on screen while OBSBasic keeps running hidden, so all
+ * the application logic stays in one place. */
+class AccessibleMainWindow : public QMainWindow {
+	Q_OBJECT
+
+public:
+	explicit AccessibleMainWindow(OBSBasic *main);
+	~AccessibleMainWindow();
+
+	void ShowAndActivate();
+
+protected:
+	void closeEvent(QCloseEvent *event) override;
+	void hideEvent(QHideEvent *event) override;
+	bool eventFilter(QObject *watched, QEvent *event) override;
+
+private:
+	static void OnFrontendEvent(enum obs_frontend_event event, void *data);
+
+	void CreateMenus();
+	void FocusPanel(int index);
+	void CyclePanels(int direction);
+	void UpdateTitle(const QString &mainTitle);
+	void ReturnFocusAfterDialog();
+
+	OBSBasic *main;
+	ScenesPanel *scenesPanel;
+	SourcesPanel *sourcesPanel;
+	ControlsPanel *controlsPanel;
+	QList<QPointer<QWidget>> panelWidgets;
+};
+
+} // namespace OBS::Accessibility

@@ -21,6 +21,9 @@ namespace Settings {
 
 void SetDefaults();
 
+bool GetAccessibleMode();
+void SetAccessibleMode(bool enabled);
+
 AnnounceLevel GetAnnounceLevel();
 void SetAnnounceLevel(AnnounceLevel level);
 

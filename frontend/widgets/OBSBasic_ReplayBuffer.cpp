@@ -205,22 +205,22 @@ void OBSBasic::ReplayBufferStop(int code)
 
 	blog(LOG_INFO, REPLAY_BUFFER_STOP);
 
-	if (code == OBS_OUTPUT_UNSUPPORTED && isVisible()) {
+	if (code == OBS_OUTPUT_UNSUPPORTED && IsUserFacing()) {
 		OBSMessageBox::critical(this, QTStr("Output.RecordFail.Title"), QTStr("Output.RecordFail.Unsupported"));
 
-	} else if (code == OBS_OUTPUT_NO_SPACE && isVisible()) {
+	} else if (code == OBS_OUTPUT_NO_SPACE && IsUserFacing()) {
 		OBSMessageBox::warning(this, QTStr("Output.RecordNoSpace.Title"), QTStr("Output.RecordNoSpace.Msg"));
 
-	} else if (code != OBS_OUTPUT_SUCCESS && isVisible()) {
+	} else if (code != OBS_OUTPUT_SUCCESS && IsUserFacing()) {
 		OBSMessageBox::critical(this, QTStr("Output.RecordError.Title"), QTStr("Output.RecordError.Msg"));
 
-	} else if (code == OBS_OUTPUT_UNSUPPORTED && !isVisible()) {
+	} else if (code == OBS_OUTPUT_UNSUPPORTED && !IsUserFacing()) {
 		SysTrayNotify(QTStr("Output.RecordFail.Unsupported"), QSystemTrayIcon::Warning);
 
-	} else if (code == OBS_OUTPUT_NO_SPACE && !isVisible()) {
+	} else if (code == OBS_OUTPUT_NO_SPACE && !IsUserFacing()) {
 		SysTrayNotify(QTStr("Output.RecordNoSpace.Msg"), QSystemTrayIcon::Warning);
 
-	} else if (code != OBS_OUTPUT_SUCCESS && !isVisible()) {
+	} else if (code != OBS_OUTPUT_SUCCESS && !IsUserFacing()) {
 		SysTrayNotify(QTStr("Output.RecordError.Msg"), QSystemTrayIcon::Warning);
 	}
 

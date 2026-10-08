@@ -157,7 +157,7 @@ void OBSBasic::BroadcastButtonClicked()
 	} else if (!autoStopBroadcast) {
 #ifdef YOUTUBE_ENABLED
 		bool confirm = config_get_bool(App()->GetUserConfig(), "BasicWindow", "WarnBeforeStoppingStream");
-		if (confirm && isVisible()) {
+		if (confirm && IsUserFacing()) {
 			QMessageBox::StandardButton button = OBSMessageBox::question(
 				this, QTStr("ConfirmStop.Title"), QTStr("YouTube.Actions.AutoStopStreamingWarning"),
 				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
