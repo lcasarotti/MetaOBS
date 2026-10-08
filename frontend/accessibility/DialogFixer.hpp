@@ -13,7 +13,8 @@ namespace OBS::Accessibility {
  * - buttons that only show an icon get their tooltip as name
  * - controls in form layout rows get the row's label as name when Qt cannot
  *   associate the label with them
- * - names that are untranslated locale keys are translated */
+ * - names that are untranslated locale keys are translated
+ * - the focused control is announced again once a dialog is active */
 class DialogFixer : public QObject {
 	Q_OBJECT
 
@@ -24,6 +25,9 @@ public:
 
 protected:
 	bool eventFilter(QObject *watched, QEvent *event) override;
+
+private:
+	void RepeatFocus(QWidget *dialog);
 };
 
 } // namespace OBS::Accessibility

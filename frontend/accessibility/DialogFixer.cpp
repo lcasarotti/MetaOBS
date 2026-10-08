@@ -4,8 +4,11 @@
 
 #include <QAbstractButton>
 #include <QAbstractSpinBox>
+#include <QAccessible>
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDialog>
 #include <QEvent>
 #include <QFormLayout>
 #include <QLabel>
@@ -21,6 +24,8 @@
 namespace OBS::Accessibility {
 
 namespace {
+constexpr int focusRepeatDelayMs = 150;
+
 QString ToPlainText(QString text)
 {
 	if (Qt::mightBeRichText(text)) {
@@ -139,8 +144,33 @@ void DialogFixer::FixWindow(QWidget *window)
 	TranslateLocaleKeys(window);
 }
 
+/* A dialog that gives focus to a control while it is being activated sends
+ * the focus event before screen readers have noticed the new window, so they
+ * ignore it and the control is not read until focus moves again. Send it again
+ * once the dialog is active. */
+void DialogFixer::RepeatFocus(QWidget *dialog)
+{
+	QPointer<QWidget> window = dialog;
+	QTimer::singleShot(focusRepeatDelayMs, this, [window]() {
+		if (!window || QApplication::activeWindow() != window) {
+			return;
+		}
+
+		QWidget *focus = QApplication::focusWidget();
+		if (focus && window->isAncestorOf(focus)) {
+			QAccessibleEvent event(focus, QAccessible::Focus);
+			QAccessible::updateAccessibility(&event);
+		}
+	});
+}
+
 bool DialogFixer::eventFilter(QObject *watched, QEvent *event)
 {
+	if (event->type() == QEvent::WindowActivate && qobject_cast<QDialog *>(watched)) {
+		RepeatFocus(static_cast<QWidget *>(watched));
+		return false;
+	}
+
 	if (event->type() != QEvent::Show || !watched->isWidgetType()) {
 		return false;
 	}
