@@ -1289,6 +1289,7 @@ private slots:
 
 	void DuplicateSelectedScene();
 	void RemoveSelectedScene();
+	void RemoveSceneWithUndo(OBSScene scene, int index);
 
 	SourceTreeItem *GetItemWidgetFromSceneItem(obs_sceneitem_t *sceneItem);
 

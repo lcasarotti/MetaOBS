@@ -343,7 +343,11 @@ static inline void RemoveSceneAndReleaseNested(obs_source_t *source)
 
 void OBSBasic::RemoveSelectedScene()
 {
-	OBSScene scene = GetCurrentScene();
+	RemoveSceneWithUndo(GetCurrentScene(), ui->scenes->currentRow());
+}
+
+void OBSBasic::RemoveSceneWithUndo(OBSScene scene, int index)
+{
 	obs_source_t *source = obs_scene_get_source(scene);
 
 	if (!source || !QueryRemoveSource(source)) {
@@ -465,7 +469,7 @@ void OBSBasic::RemoveSelectedScene()
 	OBSDataAutoRelease data = obs_data_create();
 	obs_data_set_array(data, "sources_in_deleted_scene", sources_in_deleted_scene);
 	obs_data_set_array(data, "scene_used_in_other_scenes", scene_used_in_other_scenes);
-	obs_data_set_int(data, "index", ui->scenes->currentRow());
+	obs_data_set_int(data, "index", index);
 
 	const char *scene_name = obs_source_get_name(source);
 	undo_s.add_action(QTStr("Undo.Delete").arg(scene_name), undo, redo, obs_data_get_json(data), scene_name);
