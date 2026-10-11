@@ -404,7 +404,7 @@ bool OBSYoutubeActions::CreateEventAction(YoutubeApiWrappers *api, BroadcastDesc
 	}
 
 	if (!stream_later || ready_broadcast) {
-		stream = {"", "", "OBS Studio Video Stream"};
+		stream = {"", "", "MetaOBS Video Stream"};
 		if (!apiYouTube->InsertStream(stream)) {
 			blog(LOG_DEBUG, "No stream created.");
 			return false;
@@ -453,7 +453,7 @@ bool OBSYoutubeActions::ChooseAnEventAction(YoutubeApiWrappers *api, StreamDescr
 		stream.title = title.c_str();
 		api->SetBroadcastId(selectedBroadcast);
 	} else {
-		stream = {"", "", "OBS Studio Video Stream"};
+		stream = {"", "", "MetaOBS Video Stream"};
 		if (!apiYouTube->InsertStream(stream)) {
 			blog(LOG_DEBUG, "No stream created.");
 			return false;
