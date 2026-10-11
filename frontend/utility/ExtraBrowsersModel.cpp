@@ -1,11 +1,13 @@
 #include "ExtraBrowsersModel.hpp"
 
+#include <accessibility/Announcer.hpp>
 #include <components/DelButton.hpp>
 #include <docks/BrowserDock.hpp>
 #include <widgets/OBSBasic.hpp>
 
 #include <qt-wrappers.hpp>
 
+#include <QKeyEvent>
 #include <QTableView>
 
 #include "moc_ExtraBrowsersModel.cpp"
@@ -103,6 +105,7 @@ void ExtraBrowsersModel::AddDeleteButton(int idx)
 	del->setObjectName("extraPanelDelete");
 	del->setMinimumSize(QSize(20, 20));
 	del->setAccessibleName(QTStr("Remove") + " " + items[idx].title);
+	del->installEventFilter(this);
 	connect(del, &QPushButton::clicked, this, &ExtraBrowsersModel::DeleteItem);
 
 	widget->setIndexWidget(index, del);
@@ -156,16 +159,28 @@ void ExtraBrowsersModel::UpdateItem(Item &item)
 
 void ExtraBrowsersModel::DeleteItem()
 {
+	DelButton *del = reinterpret_cast<DelButton *>(sender());
+	DeleteRow(del->index.row());
+}
+
+void ExtraBrowsersModel::DeleteRow(int row)
+{
 	QTableView *widget = reinterpret_cast<QTableView *>(parent());
 
-	DelButton *del = reinterpret_cast<DelButton *>(sender());
-	int row = del->index.row();
+	if (row < 0 || row >= items.size()) {
+		return;
+	}
 
 	/* there's some sort of internal bug in Qt and deleting certain index
 	 * widgets or "editors" that can cause a crash inside Qt if the widget
 	 * is not manually removed, at least on 5.7 */
-	widget->setIndexWidget(del->index, nullptr);
-	del->deleteLater();
+	QModelIndex delIndex = index(row, (int)Column::Delete);
+	if (QWidget *del = widget->indexWidget(delIndex)) {
+		widget->setIndexWidget(delIndex, nullptr);
+		del->deleteLater();
+	}
+
+	QString title = items[row].title;
 
 	/* --------- */
 
@@ -182,6 +197,73 @@ void ExtraBrowsersModel::DeleteItem()
 	}
 
 	endRemoveRows();
+
+	if (auto announcer = OBS::Accessibility::Announcer::Get()) {
+		announcer->Announce(QTStr("Accessibility.Docks.BrowserDockRemoved").arg(title),
+				    OBS::Accessibility::Priority::High);
+	}
+
+	/* The focused button or field went away with the row, so continue
+	 * from the row that took its place, or from the empty row. */
+	FocusCell(row, (int)Column::Title);
+}
+
+void ExtraBrowsersModel::FocusCell(int row, int column)
+{
+	QTableView *widget = reinterpret_cast<QTableView *>(parent());
+	QItemSelectionModel *selModel = widget->selectionModel();
+
+	/* Setting the current cell opens its editor and focuses it. */
+	selModel->clearCurrentIndex();
+	selModel->setCurrentIndex(index(row, column), QItemSelectionModel::Clear);
+}
+
+void ExtraBrowsersModel::FocusDeleteButton(int row)
+{
+	QTableView *widget = reinterpret_cast<QTableView *>(parent());
+	QModelIndex delIndex = index(row, (int)Column::Delete);
+
+	QWidget *del = widget->indexWidget(delIndex);
+	if (!del) {
+		return;
+	}
+
+	widget->selectionModel()->setCurrentIndex(delIndex, QItemSelectionModel::Clear);
+	del->setFocus(Qt::TabFocusReason);
+}
+
+void ExtraBrowsersModel::UpdateDeleteButtonName(int row)
+{
+	QTableView *widget = reinterpret_cast<QTableView *>(parent());
+	if (QWidget *del = widget->indexWidget(index(row, (int)Column::Delete))) {
+		del->setAccessibleName(QTStr("Remove") + " " + items[row].title);
+	}
+}
+
+/* The delete buttons take part in the table's Tab order, after the URL of
+ * their row, and Delete removes their dock. */
+bool ExtraBrowsersModel::eventFilter(QObject *object, QEvent *event)
+{
+	DelButton *del = qobject_cast<DelButton *>(object);
+	if (!del || event->type() != QEvent::KeyPress) {
+		return false;
+	}
+
+	int row = del->index.row();
+
+	switch (static_cast<QKeyEvent *>(event)->key()) {
+	case Qt::Key_Tab:
+		FocusCell(row + 1, (int)Column::Title);
+		return true;
+	case Qt::Key_Backtab:
+		FocusCell(row, (int)Column::Url);
+		return true;
+	case Qt::Key_Delete:
+		DeleteRow(row);
+		return true;
+	default:
+		return false;
+	}
 }
 
 void ExtraBrowsersModel::Apply()
@@ -246,7 +328,8 @@ void ExtraBrowsersModel::TabSelection(bool forward)
 				return;
 			}
 
-			row -= 1;
+			FocusDeleteButton(row - 1);
+			return;
 		}
 
 		col += 1;
@@ -259,7 +342,8 @@ void ExtraBrowsersModel::TabSelection(bool forward)
 				return;
 			}
 
-			row += 1;
+			FocusDeleteButton(row);
+			return;
 		}
 
 		col -= 1;

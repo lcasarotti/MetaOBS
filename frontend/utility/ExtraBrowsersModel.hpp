@@ -36,6 +36,10 @@ public:
 	};
 
 	void TabSelection(bool forward);
+	void FocusCell(int row, int column);
+	void FocusDeleteButton(int row);
+	void UpdateDeleteButtonName(int row);
+	void DeleteRow(int row);
 
 	void AddDeleteButton(int idx);
 	void Reset();
@@ -49,6 +53,9 @@ public:
 
 	QString newTitle;
 	QString newURL;
+
+protected:
+	bool eventFilter(QObject *object, QEvent *event) override;
 
 public slots:
 	void Init();

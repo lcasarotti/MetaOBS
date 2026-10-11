@@ -35,6 +35,17 @@ bool ExtraBrowsersDelegate::eventFilter(QObject *object, QEvent *event)
 		return false;
 	}
 
+	/* Plain Delete edits the text, so a modified one removes the dock of
+	 * the row. */
+	if (event->type() == QEvent::KeyPress) {
+		QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+		if (keyEvent->key() == Qt::Key_Delete &&
+		    keyEvent->modifiers() == (Qt::ControlModifier | Qt::ShiftModifier)) {
+			model->DeleteRow(reinterpret_cast<EditWidget *>(edit)->index.row());
+			return true;
+		}
+	}
+
 	if (LineEditCanceled(event)) {
 		RevertText(edit);
 	}
@@ -72,6 +83,11 @@ void ExtraBrowsersDelegate::RevertText(QLineEdit *edit_)
 	int col = edit->index.column();
 	bool newItem = (row == model->items.size());
 
+	/* The row was removed while its field was open. */
+	if (row < 0) {
+		return;
+	}
+
 	QString oldText;
 	if (col == (int)Column::Title) {
 		oldText = newItem ? model->newTitle : model->items[row].title;
@@ -91,7 +107,7 @@ bool ExtraBrowsersDelegate::UpdateText(QLineEdit *edit_)
 
 	QString text = edit->text().trimmed();
 
-	if (!newItem && text.isEmpty()) {
+	if (row < 0 || (!newItem && text.isEmpty())) {
 		return false;
 	}
 
@@ -110,6 +126,7 @@ bool ExtraBrowsersDelegate::UpdateText(QLineEdit *edit_)
 		switch (col) {
 		case (int)Column::Title:
 			model->items[row].title = text;
+			model->UpdateDeleteButtonName(row);
 			break;
 		case (int)Column::Url:
 			model->items[row].url = text;
