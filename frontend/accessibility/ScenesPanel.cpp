@@ -22,9 +22,10 @@
 namespace OBS::Accessibility {
 
 namespace {
-/* After a transition in Studio Mode, the preview takes the scene that was in
- * the program when scenes are swapped. */
-constexpr qint64 swapWindowMs = 1000;
+/* The screen reader may speak the new state of the focused scene before an
+ * announcement sent at the same moment, so the list is updated a little
+ * after the program change is announced. */
+constexpr int announcedRefreshDelayMs = 250;
 
 constexpr int uuidRole = Qt::UserRole;
 
@@ -227,7 +228,6 @@ void ScenesPanel::HandleFrontendEvent(enum obs_frontend_event event)
 		collectionLoading = false;
 		OBSSourceAutoRelease program = obs_frontend_get_current_scene();
 		programScene = OBSGetWeakRef(program);
-		replacedProgramScene = nullptr;
 		ScheduleRefresh();
 		break;
 	}
@@ -236,8 +236,6 @@ void ScenesPanel::HandleFrontendEvent(enum obs_frontend_event event)
 		OBSSourceAutoRelease scene = obs_frontend_get_current_scene();
 		OBSSource previous = OBSGetStrongRef(programScene);
 		programScene = OBSGetWeakRef(scene);
-		replacedProgramScene = OBSGetWeakRef(previous);
-		programChangeTimer.start();
 
 		if (collectionLoading || !scene) {
 			break;
@@ -249,11 +247,12 @@ void ScenesPanel::HandleFrontendEvent(enum obs_frontend_event event)
 		} else {
 			Announce(QTStr("Accessibility.Announce.SceneLive").arg(obs_source_get_name(scene)));
 		}
+		refreshTimer->start(announcedRefreshDelayMs);
 		break;
 	}
 	case OBS_FRONTEND_EVENT_PREVIEW_SCENE_CHANGED: {
 		ScheduleRefresh();
-		if (collectionLoading || !obs_frontend_preview_program_mode_active()) {
+		if (collectionLoading || sendingLive || !obs_frontend_preview_program_mode_active()) {
 			break;
 		}
 
@@ -262,10 +261,12 @@ void ScenesPanel::HandleFrontendEvent(enum obs_frontend_event event)
 			break;
 		}
 
-		/* The transition was already announced from the scene that
-		 * now goes back to the preview. */
-		bool swapped = OBSGetStrongRef(replacedProgramScene).Get() == scene.Get() &&
-			       programChangeTimer.isValid() && programChangeTimer.elapsed() < swapWindowMs;
+		/* When scenes are swapped, the old program scene goes back to the
+		 * preview at the end of the transition, before the program change
+		 * is reported. The transition announcement covers it. */
+		OBSSource announcedProgram = OBSGetStrongRef(programScene);
+		OBSSourceAutoRelease program = obs_frontend_get_current_scene();
+		bool swapped = scene.Get() == announcedProgram.Get() && program.Get() != announcedProgram.Get();
 		if (!swapped) {
 			Announce(QTStr("Accessibility.Announce.ScenePreview").arg(obs_source_get_name(scene)));
 		}
@@ -283,14 +284,22 @@ void ScenesPanel::HandleFrontendEvent(enum obs_frontend_event event)
 
 void ScenesPanel::ScheduleRefresh()
 {
-	refreshTimer->start();
+	/* Do not cut short a refresh delayed after an announcement. */
+	if (refreshTimer->isActive() && refreshTimer->remainingTime() > 0) {
+		return;
+	}
+	refreshTimer->start(0);
 }
 
 void ScenesPanel::Refresh()
 {
 	QListWidget *sceneList = OBSAccessibleBridge::SceneList(main);
 
-	OBSSourceAutoRelease program = obs_frontend_get_current_scene();
+	/* Without Studio Mode, the frontend reports the new scene as soon as a
+	 * transition starts. Mark it live when the transition ends, together
+	 * with its announcement, so the screen reader does not read the new
+	 * state before the transition. */
+	OBSSource program = OBSGetStrongRef(programScene);
 	OBSSourceAutoRelease preview = obs_frontend_preview_program_mode_active()
 					       ? obs_frontend_get_current_preview_scene()
 					       : nullptr;
@@ -385,7 +394,11 @@ void ScenesPanel::SendSelectedSceneLive()
 		return;
 	}
 
+	/* The scene only passes through the preview on its way to the
+	 * program, so the preview change is not announced. */
+	sendingLive = true;
 	main->SetCurrentScene(source);
+	sendingLive = false;
 	if (obs_frontend_preview_program_mode_active()) {
 		obs_frontend_preview_program_trigger_transition();
 	}
