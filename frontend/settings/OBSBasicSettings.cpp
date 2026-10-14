@@ -605,6 +605,11 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	if (App()->IsUpdaterDisabled()) {
 		ui->updateSettingsGroupBox->hide();
 	}
+#ifdef _WIN32
+	/* MetaOBS has a single release channel. */
+	ui->updateChannelLabel->hide();
+	ui->updateChannelBox->hide();
+#endif
 #endif
 
 	// Remove the Advanced Audio section if monitoring is not supported, as the monitoring device selection is the only item in the group box.

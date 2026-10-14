@@ -1223,6 +1223,12 @@ void OBSBasic::OBSInit()
 	ui->actionShowMacPermissions = nullptr;
 #endif
 
+#if defined(_WIN32)
+	/* The integrity check repairs the installation from OBS's update
+	 * server, which would replace MetaOBS with OBS. */
+	ui->actionRepair->setVisible(false);
+#endif
+
 #if defined(_WIN32) || defined(__APPLE__)
 	if (App()->IsUpdaterDisabled()) {
 		ui->actionCheckForUpdates->setEnabled(false);

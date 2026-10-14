@@ -22,7 +22,7 @@
 #include <dialogs/OBSWhatsNew.hpp>
 
 #ifdef _WIN32
-#include <utility/AutoUpdateThread.hpp>
+#include <utility/MetaOBSUpdater.hpp>
 #endif
 #ifdef ENABLE_SPARKLE_UPDATER
 #include <utility/MacUpdateThread.hpp>
@@ -53,6 +53,10 @@ using namespace std;
 namespace {
 
 QPointer<OBSWhatsNew> obsWhatsNew;
+#ifdef _WIN32
+/* MetaOBS updates from its own releases, not from OBS's update server. */
+QPointer<MetaOBS::Updater> metaobsUpdater;
+#endif
 
 template<typename OBSRef> struct SignalContainer {
 	OBSRef ref;
@@ -173,6 +177,12 @@ void OBSBasic::ShowWhatsNew(const QString &url)
 
 void OBSBasic::TimedCheckForUpdates()
 {
+#ifdef _WIN32
+	/* Once the window is up, report the update installed before this
+	 * start. */
+	QTimer::singleShot(1000, this, []() { MetaOBS::Updater::ReportInstallResult(); });
+#endif
+
 	if (App()->IsUpdaterDisabled()) {
 		return;
 	}
@@ -203,14 +213,16 @@ void OBSBasic::TimedCheckForUpdates()
 void OBSBasic::CheckForUpdates(bool manualUpdate)
 {
 #if _WIN32
-	ui->actionCheckForUpdates->setEnabled(false);
-	ui->actionRepair->setEnabled(false);
-
-	if (updateCheckThread && updateCheckThread->isRunning()) {
+	if (!metaobsUpdater) {
+		metaobsUpdater = new MetaOBS::Updater(this);
+		connect(metaobsUpdater, &MetaOBS::Updater::Finished, this, &OBSBasic::updateCheckFinished);
+	}
+	if (metaobsUpdater->IsBusy()) {
 		return;
 	}
-	updateCheckThread.reset(new AutoUpdateThread(manualUpdate));
-	updateCheckThread->start();
+
+	ui->actionCheckForUpdates->setEnabled(false);
+	metaobsUpdater->Check(manualUpdate);
 #elif defined(ENABLE_SPARKLE_UPDATER)
 	ui->actionCheckForUpdates->setEnabled(false);
 
