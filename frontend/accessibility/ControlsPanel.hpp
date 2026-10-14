@@ -29,6 +29,7 @@ public:
 	~ControlsPanel();
 
 	QWidget *FirstControl() const;
+	QWidget *LastControl() const;
 	void FillMenu(QMenu *menu);
 
 private:

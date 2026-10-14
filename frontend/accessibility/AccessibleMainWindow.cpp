@@ -76,8 +76,12 @@ AccessibleMainWindow::AccessibleMainWindow(OBSBasic *main_) : QMainWindow(nullpt
 	panelWidgets = {scenesPanel->View(), sourcesPanel->View(), audioPanel->View(), controlsPanel->FirstControl(),
 			statusPanel->View()};
 
+	/* Each panel is entered at its first widget and left after its last;
+	 * only the Controls panel has more than one. */
+	QList<QPointer<QWidget>> lastWidgets = panelWidgets;
+	lastWidgets[panels.indexOf(controlsPanel)] = controlsPanel->LastControl();
 	for (int i = 1; i < panelWidgets.size(); i++) {
-		setTabOrder(panelWidgets[i - 1], panelWidgets[i]);
+		setTabOrder(lastWidgets[i - 1], panelWidgets[i]);
 	}
 
 	/* F6 moves between panels, as in many Windows applications, and

@@ -177,6 +177,12 @@ QWidget *ControlsPanel::FirstControl() const
 	return streamButton;
 }
 
+/* The T-bar is created last, so it ends the panel's focus chain. */
+QWidget *ControlsPanel::LastControl() const
+{
+	return tBar;
+}
+
 void ControlsPanel::FillMenu(QMenu *menu)
 {
 	menu->addAction(streamAction);
