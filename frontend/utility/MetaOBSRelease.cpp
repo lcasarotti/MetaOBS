@@ -70,6 +70,7 @@ bool ParseRelease(const QByteArray &json, const QString &packageSuffix, Release 
 			continue;
 		}
 
+		release.packageName = asset["name"].toString();
 		release.packageUrl = asset["browser_download_url"].toString();
 		release.packageSize = asset["size"].toInteger();
 

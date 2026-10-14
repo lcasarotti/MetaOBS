@@ -19,7 +19,9 @@ namespace MetaOBS {
 /* Updates MetaOBS from its GitHub releases. It checks the latest release,
  * downloads its Windows package and verifies it against the digest GitHub
  * reports, then hands it to an install script that waits for MetaOBS to
- * close, copies the files over the installation and starts MetaOBS again.
+ * close, installs the update and starts MetaOBS again. A copy installed with
+ * the installer is updated by running the new installer silently; any other
+ * copy, by copying the files of the zip package over it.
  *
  * Transfers use libcurl on a worker thread; dialogs stay on the UI thread. */
 class Updater : public QObject {
@@ -51,6 +53,7 @@ private:
 
 	OBSBasic *main;
 	bool busy = false;
+	bool useInstaller = false;
 	Release release;
 	QString packagePath;
 	QPointer<QProgressDialog> progress;

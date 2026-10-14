@@ -1,13 +1,17 @@
 # Installs a MetaOBS update. MetaOBS downloads and verifies the package,
 # writes the settings below into a JSON file and starts this script, then
-# closes. The script waits for it to exit, copies the package over the
-# installation, writes the result for MetaOBS to report, and starts MetaOBS
-# again.
+# closes. The script waits for it to exit, installs the package, writes the
+# result for MetaOBS to report, and starts MetaOBS again.
 #
-# Settings: version, packagePath, installDir, executable, arguments,
-# processId, elevated, resultPath, logPath. With elevated set, only the copy
-# runs as administrator, in a second instance started with -CopyFrom, so that
-# MetaOBS starts again as the user.
+# Settings: version, mode, packagePath, installerArguments, installDir,
+# executable, arguments, processId, elevated, resultPath, logPath.
+#
+# In "installer" mode the package is the MetaOBS installer, run with
+# installerArguments; it asks for administrator rights itself when needed.
+# In "files" mode the package is a zip whose files are copied over the
+# installation. With elevated set, only the copy runs as administrator, in a
+# second instance started with -CopyFrom, so that MetaOBS starts again as the
+# user.
 #
 # Keep this file ASCII: Windows PowerShell reads scripts without a byte order
 # mark in the ANSI code page.
@@ -77,38 +81,15 @@ function Copy-Update([string] $source) {
     }
 }
 
-# The instance running as administrator only copies.
-if ($CopyFrom) {
-    try {
-        Copy-Update $CopyFrom
-        exit 0
-    } catch {
-        [IO.File]::WriteAllText($copyErrorPath, $_.Exception.Message)
-        try { Write-Log "Copy failed: $($_.Exception.Message)" } catch { }
-        exit 1
+function Install-WithInstaller {
+    Write-Log 'Running the installer'
+    $installer = Start-Process -FilePath $config.packagePath -ArgumentList $config.installerArguments -Wait -PassThru
+    if ($installer.ExitCode -ne 0) {
+        throw "The installer stopped with exit code $($installer.ExitCode). Its log is next to this one."
     }
 }
 
-$result = [ordered]@{ version = $config.version; success = $false; error = '' }
-
-try {
-    Write-Log "Installing MetaOBS $($config.version) into $installDir"
-
-    $process = Get-Process -Id $config.processId -ErrorAction SilentlyContinue
-    if ($process) {
-        Write-Log 'Waiting for MetaOBS to close'
-        $process.WaitForExit()
-    }
-
-    $deadline = (Get-Date).AddSeconds(60)
-    while (Get-InstallProcesses) {
-        if ((Get-Date) -gt $deadline) {
-            $names = (Get-InstallProcesses | ForEach-Object { $_.ProcessName } | Sort-Object -Unique) -join ', '
-            throw "These programs are still running from the installation: $names"
-        }
-        Start-Sleep -Seconds 1
-    }
-
+function Install-Files {
     if (Test-Path -LiteralPath $staging) {
         Remove-Item -LiteralPath $staging -Recurse -Force
     }
@@ -128,27 +109,67 @@ try {
         throw 'The package does not contain MetaOBS.'
     }
 
-    if ($config.elevated) {
-        Write-Log 'Asking for administrator rights'
-        Remove-Item -LiteralPath $copyErrorPath -Force -ErrorAction SilentlyContinue
-        $arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden ' +
-            "-File `"$PSCommandPath`" -ConfigPath `"$ConfigPath`" -CopyFrom `"$source`""
-        try {
-            $copy = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList $arguments -Verb RunAs `
-                -WindowStyle Hidden -Wait -PassThru
-        } catch {
-            throw 'Administrator rights were not granted, so the update was not installed.'
-        }
-        if ($copy.ExitCode -ne 0) {
-            $copyError = 'Copying the files as administrator failed.'
-            if (Test-Path -LiteralPath $copyErrorPath) {
-                $copyError = [IO.File]::ReadAllText($copyErrorPath)
-                Remove-Item -LiteralPath $copyErrorPath -Force -ErrorAction SilentlyContinue
-            }
-            throw $copyError
-        }
-    } else {
+    if (-not $config.elevated) {
         Copy-Update $source
+        return
+    }
+
+    Write-Log 'Asking for administrator rights'
+    Remove-Item -LiteralPath $copyErrorPath -Force -ErrorAction SilentlyContinue
+    $arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden ' +
+        "-File `"$PSCommandPath`" -ConfigPath `"$ConfigPath`" -CopyFrom `"$source`""
+    try {
+        $copy = Start-Process -FilePath (Get-Process -Id $PID).Path -ArgumentList $arguments -Verb RunAs `
+            -WindowStyle Hidden -Wait -PassThru
+    } catch {
+        throw 'Administrator rights were not granted, so the update was not installed.'
+    }
+    if ($copy.ExitCode -ne 0) {
+        $copyError = 'Copying the files as administrator failed.'
+        if (Test-Path -LiteralPath $copyErrorPath) {
+            $copyError = [IO.File]::ReadAllText($copyErrorPath)
+            Remove-Item -LiteralPath $copyErrorPath -Force -ErrorAction SilentlyContinue
+        }
+        throw $copyError
+    }
+}
+
+# The instance running as administrator only copies.
+if ($CopyFrom) {
+    try {
+        Copy-Update $CopyFrom
+        exit 0
+    } catch {
+        [IO.File]::WriteAllText($copyErrorPath, $_.Exception.Message)
+        try { Write-Log "Copy failed: $($_.Exception.Message)" } catch { }
+        exit 1
+    }
+}
+
+$result = [ordered]@{ version = $config.version; success = $false; error = '' }
+
+try {
+    Write-Log "Installing MetaOBS $($config.version) into $installDir ($($config.mode))"
+
+    $process = Get-Process -Id $config.processId -ErrorAction SilentlyContinue
+    if ($process) {
+        Write-Log 'Waiting for MetaOBS to close'
+        $process.WaitForExit()
+    }
+
+    $deadline = (Get-Date).AddSeconds(60)
+    while (Get-InstallProcesses) {
+        if ((Get-Date) -gt $deadline) {
+            $names = (Get-InstallProcesses | ForEach-Object { $_.ProcessName } | Sort-Object -Unique) -join ', '
+            throw "These programs are still running from the installation: $names"
+        }
+        Start-Sleep -Seconds 1
+    }
+
+    if ($config.mode -eq 'installer') {
+        Install-WithInstaller
+    } else {
+        Install-Files
     }
 
     $result.success = $true

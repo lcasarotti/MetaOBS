@@ -42,6 +42,9 @@ constexpr const char *scriptName = "metaobs-update.ps1";
 constexpr const char *configName = "metaobs-update.json";
 constexpr const char *resultName = "metaobs-update-result.json";
 constexpr const char *logName = "metaobs-update.log";
+constexpr const char *installerLogName = "metaobs-installer.log";
+/* The installer leaves its uninstaller in the installation. */
+constexpr const char *uninstallerName = "unins000.exe";
 constexpr const char *skipVersionKey = "MetaOBSSkipVersion";
 
 constexpr int checkTimeoutSeconds = 30;
@@ -59,6 +62,12 @@ QString UpdatesPath(const QString &name = QString())
 QString NativePath(const QString &path)
 {
 	return QDir::toNativeSeparators(path);
+}
+
+/* The program is in bin\64bit of the installation. */
+QString InstallDirectory()
+{
+	return QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../..");
 }
 
 /* The dialogs belong to the window the user is in. In Accessible Mode the
@@ -268,11 +277,19 @@ void Updater::ReleaseReceived(bool manual, bool found, const std::string &text, 
 {
 	JoinWorker();
 
+	/* A copy that was not installed with the installer, or a release
+	 * without one, is updated from the zip package. */
 	QString checkError;
+	QByteArray json = QByteArray::fromStdString(text);
+	useInstaller = QFileInfo::exists(InstallDirectory() + "/" + uninstallerName);
 	if (!found) {
 		checkError = QT_UTF8(error.c_str());
-	} else if (!ParseRelease(QByteArray::fromStdString(text), windowsPackageSuffix, release, checkError)) {
+	} else if (!ParseRelease(json, useInstaller ? windowsInstallerSuffix : windowsPackageSuffix, release,
+				 checkError)) {
 		found = false;
+	} else if (useInstaller && release.packageUrl.isEmpty()) {
+		useInstaller = false;
+		ParseRelease(json, windowsPackageSuffix, release, checkError);
 	}
 
 	if (!found) {
@@ -317,8 +334,11 @@ void Updater::ReleaseReceived(bool manual, bool found, const std::string &text, 
 void Updater::OfferRelease(bool manual)
 {
 	/* Only a package that GitHub hosts and has a digest for is installed;
-	 * otherwise the user can still get the release from its page. */
-	bool installable = release.packageUrl.startsWith("https://github.com/") && release.packageSha256.size() == 32;
+	 * otherwise the user can still get the release from its page. Its name
+	 * becomes a file name, so it must not hold a path. */
+	bool installable = release.packageUrl.startsWith("https://github.com/") && release.packageSha256.size() == 32 &&
+			   !release.packageName.isEmpty() && !release.packageName.contains('/') &&
+			   !release.packageName.contains('\\');
 	if (!installable) {
 		blog(LOG_WARNING, "MetaOBS %s has no verifiable Windows package", QT_TO_UTF8(release.version));
 		if (manual) {
@@ -354,7 +374,7 @@ void Updater::OfferRelease(bool manual)
 void Updater::Download()
 {
 	QDir().mkpath(UpdatesPath());
-	packagePath = UpdatesPath(QStringLiteral("MetaOBS-%1%2").arg(release.version, windowsPackageSuffix));
+	packagePath = UpdatesPath(release.packageName);
 
 	progress = new QProgressDialog(QTStr("MetaOBS.Updater.Downloading").arg(release.version), QTStr("Cancel"), 0,
 				       100, DialogParent());
@@ -437,8 +457,7 @@ void Updater::DownloadFinished(bool canceled, const QString &error)
 
 bool Updater::Install(QString &error)
 {
-	/* The program is in bin\64bit of the installation. */
-	QString installDir = QDir::cleanPath(QCoreApplication::applicationDirPath() + "/../..");
+	QString installDir = InstallDirectory();
 	if (!QFileInfo(installDir + "/bin").isDir() || !QFileInfo(installDir + "/data").isDir()) {
 		error = QTStr("MetaOBS.Updater.UnknownLayout").arg(NativePath(installDir));
 		return false;
@@ -459,11 +478,17 @@ bool Updater::Install(QString &error)
 		return false;
 	}
 
+	/* Without write access, the installation is for all users, and
+	 * updating it needs administrator rights. */
 	bool elevated = !CanWrite(installDir);
 
 	QJsonObject config;
 	config["version"] = release.version;
+	config["mode"] = useInstaller ? "installer" : "files";
 	config["packagePath"] = NativePath(packagePath);
+	config["installerArguments"] = QStringLiteral("/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP- %1 /LOG=\"%2\"")
+					       .arg(elevated ? "/ALLUSERS" : "/CURRENTUSER",
+						    NativePath(UpdatesPath(installerLogName)));
 	config["installDir"] = NativePath(installDir);
 	config["executable"] = NativePath(QCoreApplication::applicationFilePath());
 	config["arguments"] = RestartArguments();
@@ -490,8 +515,8 @@ bool Updater::Install(QString &error)
 					  .arg(NativePath(script), NativePath(configPath))
 					  .toStdWString();
 
-	/* Without write access to the installation, the script asks for
-	 * administrator rights only to copy the files. */
+	/* The script, or the installer it runs, asks for administrator rights
+	 * only when it is about to change the installation. */
 	SHELLEXECUTEINFOW info = {};
 	info.cbSize = sizeof(info);
 	info.fMask = SEE_MASK_NOASYNC;

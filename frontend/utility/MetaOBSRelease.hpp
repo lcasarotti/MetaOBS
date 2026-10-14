@@ -10,8 +10,11 @@ namespace MetaOBS {
 /* Release tags are "metaobs-v" followed by the version, e.g. metaobs-v1.2.0. */
 constexpr const char *releaseTagPrefix = "metaobs-v";
 
-/* The package of a release that the Windows updater installs. */
+/* The packages of a release for Windows: the files of the installation, which
+ * the updater copies over a copy that was not installed with the installer,
+ * and the installer, which it runs silently over one that was. */
 constexpr const char *windowsPackageSuffix = "-windows-x64.zip";
+constexpr const char *windowsInstallerSuffix = "-windows-x64-installer.exe";
 
 struct Release {
 	QString version;
@@ -20,6 +23,7 @@ struct Release {
 	QString pageUrl;
 
 	/* Empty when the release has no package for this platform. */
+	QString packageName;
 	QString packageUrl;
 	qint64 packageSize = 0;
 	/* The SHA-256 digest that GitHub computed for the package, or empty
