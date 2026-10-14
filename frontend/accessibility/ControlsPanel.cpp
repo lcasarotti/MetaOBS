@@ -40,6 +40,7 @@ ControlsPanel::ControlsPanel(OBSBasic *main_, QWidget *parent)
 	replayBufferAction = new QAction(this);
 	saveReplayAction = new QAction(QTStr("Basic.Main.SaveReplay"), this);
 	virtualCamAction = new QAction(this);
+	virtualCamConfigAction = new QAction(QTStr("Basic.Main.VirtualCamConfig"), this);
 	studioModeAction = new QAction(QTStr("Basic.TogglePreviewProgramMode"), this);
 	studioModeAction->setCheckable(true);
 	transitionAction = new QAction(QTStr("Transition"), this);
@@ -52,6 +53,8 @@ ControlsPanel::ControlsPanel(OBSBasic *main_, QWidget *parent)
 	connect(saveReplayAction, &QAction::triggered, this, [this]() { main->ReplayBufferSave(); });
 	connect(virtualCamAction, &QAction::triggered, this,
 		[this]() { OBSAccessibleBridge::VirtualCamAction(main); });
+	connect(virtualCamConfigAction, &QAction::triggered, this,
+		[this]() { OBSAccessibleBridge::OpenVirtualCamConfig(main); });
 	connect(studioModeAction, &QAction::triggered, this, [this]() {
 		OBSAccessibleBridge::ToggleStudioMode(main);
 		UpdateState();
@@ -71,6 +74,7 @@ ControlsPanel::ControlsPanel(OBSBasic *main_, QWidget *parent)
 	AddButton(outputsLayout, replayBufferAction);
 	AddButton(outputsLayout, saveReplayAction);
 	AddButton(outputsLayout, virtualCamAction);
+	AddButton(outputsLayout, virtualCamConfigAction);
 	AddButton(outputsLayout, studioModeAction);
 	outputsLayout->addStretch();
 
@@ -191,6 +195,7 @@ void ControlsPanel::FillMenu(QMenu *menu)
 	menu->addAction(replayBufferAction);
 	menu->addAction(saveReplayAction);
 	menu->addAction(virtualCamAction);
+	menu->addAction(virtualCamConfigAction);
 	menu->addSeparator();
 	menu->addAction(studioModeAction);
 	menu->addAction(transitionAction);
@@ -339,7 +344,9 @@ void ControlsPanel::UpdateState()
 	saveReplayAction->setEnabled(replayBuffer);
 
 	virtualCamAction->setText(QTStr(virtualCam ? "Basic.Main.StopVirtualCam" : "Basic.Main.StartVirtualCam"));
-	virtualCamAction->setVisible(OBSAccessibleBridge::IsVirtualCamAvailable(main));
+	bool virtualCamAvailable = OBSAccessibleBridge::IsVirtualCamAvailable(main);
+	virtualCamAction->setVisible(virtualCamAvailable);
+	virtualCamConfigAction->setVisible(virtualCamAvailable);
 
 	/* The Transition button, the T-bar and the quick transitions only
 	 * work in Studio Mode. */

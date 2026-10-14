@@ -105,6 +105,11 @@ void OBSAccessibleBridge::VirtualCamAction(OBSBasic *main)
 	main->VirtualCamActionTriggered();
 }
 
+void OBSAccessibleBridge::OpenVirtualCamConfig(OBSBasic *main)
+{
+	main->OpenVirtualCamConfig();
+}
+
 void OBSAccessibleBridge::ToggleStudioMode(OBSBasic *main)
 {
 	main->TogglePreviewProgramMode();

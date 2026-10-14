@@ -54,6 +54,7 @@ private:
 	QAction *replayBufferAction;
 	QAction *saveReplayAction;
 	QAction *virtualCamAction;
+	QAction *virtualCamConfigAction;
 	QAction *studioModeAction;
 	QAction *transitionAction;
 

@@ -50,6 +50,7 @@ public:
 	static void RecordPauseToggle(OBSBasic *main);
 	static void ReplayBufferAction(OBSBasic *main);
 	static void VirtualCamAction(OBSBasic *main);
+	static void OpenVirtualCamConfig(OBSBasic *main);
 	static void ToggleStudioMode(OBSBasic *main);
 
 	static bool IsRecordingPaused(OBSBasic *main);
