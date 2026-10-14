@@ -1,14 +1,16 @@
 <#
 .SYNOPSIS
-Builds the MetaOBS package for Windows and optionally publishes it as a GitHub
-release.
+Builds the MetaOBS packages for Windows and optionally publishes them as a
+GitHub release.
 
 .DESCRIPTION
 Reads METAOBS_VERSION and METAOBS_REPOSITORY from
 frontend/cmake/feature-metaobs.cmake, builds the windows-x64 preset, installs
-it into build_x64/metaobs-package/MetaOBS and zips it as
-MetaOBS-<version>-windows-x64.zip, which is the package the built-in updater
-downloads.
+it into build_x64/metaobs-package/MetaOBS, and makes two packages from it:
+MetaOBS-<version>-windows-x64.zip and, with Inno Setup 6 and
+build-aux/MetaOBS.iss, MetaOBS-<version>-windows-x64-installer.exe. The
+built-in updater runs the installer over copies installed with it and copies
+the zip over any other copy.
 
 With -Publish, it also creates the release metaobs-v<version> on GitHub with
 gh, from the current commit. That commit must be pushed, and the version must
@@ -59,6 +61,24 @@ $build = "$root/build_x64"
 $packageDir = "$build/metaobs-package"
 $stage = "$packageDir/MetaOBS"
 $package = "$packageDir/MetaOBS-$version-windows-x64.zip"
+$installer = "$packageDir/MetaOBS-$version-windows-x64-installer.exe"
+
+# The installer compiler and the Visual C++ runtime that the installer
+# bundles, from the newest Visual Studio, which also builds MetaOBS.
+$iscc = @("${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe", "$env:LOCALAPPDATA/Programs/Inno Setup 6/ISCC.exe") |
+    Where-Object { Test-Path -Path $_ } | Select-Object -First 1
+if (-not $iscc) {
+    throw 'Inno Setup 6 is not installed: winget install JRSoftware.InnoSetup'
+}
+$vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
+$visualStudio = & $vswhere -latest -property installationPath
+$redist = Get-ChildItem -Path "$visualStudio/VC/Redist/MSVC" -Directory |
+    Where-Object { $_.Name -match '^14\.(\d+)\.\d+$' -and (Test-Path -Path "$($_.FullName)/vc_redist.x64.exe") } |
+    Sort-Object -Property { [version] $_.Name } | Select-Object -Last 1
+if (-not $redist) {
+    throw "No Visual C++ redistributable found in $visualStudio"
+}
+$redistMinor = ([version] $redist.Name).Minor
 
 Push-Location -Path $root
 try {
@@ -99,9 +119,16 @@ try {
 
     Write-Host "Compressing $package"
     Compress-Archive -Path "$stage/*" -DestinationPath $package -CompressionLevel Optimal
-    $hash = (Get-FileHash -Path $package -Algorithm SHA256).Hash.ToLowerInvariant()
-    Write-Host "Package: $package"
-    Write-Host "SHA-256: $hash"
+
+    Write-Host "Building $installer"
+    Invoke-Checked $iscc @('/Q', "/DAppVersion=$version", "/DProjectRoot=$root", "/DStageDir=$stage",
+        "/DOutputDir=$packageDir", "/DVCRedist=$($redist.FullName)/vc_redist.x64.exe",
+        "/DVCRedistMinor=$redistMinor", "/DRepository=$repository", "$root/build-aux/MetaOBS.iss")
+
+    foreach ($file in @($package, $installer)) {
+        $hash = (Get-FileHash -Path $file -Algorithm SHA256).Hash.ToLowerInvariant()
+        Write-Host "$file`n  SHA-256: $hash"
+    }
 
     if (-not $Publish) {
         return
@@ -121,7 +148,7 @@ try {
     }
 
     Write-Host "Publishing $tag to $repository"
-    Invoke-Checked gh @('release', 'create', $tag, $package, '--repo', $repository, '--target', $head,
+    Invoke-Checked gh @('release', 'create', $tag, $installer, $package, '--repo', $repository, '--target', $head,
         '--title', "MetaOBS $version", '--notes-file', $NotesFile)
 } finally {
     Pop-Location
