@@ -1334,6 +1334,7 @@ bool OBSApp::OBSInit()
 #endif
 
 	blog(LOG_INFO, "Qt Version: %s (runtime), %s (compiled)", qVersion(), QT_VERSION_STR);
+	blog(LOG_INFO, "MetaOBS version: %s", METAOBS_VERSION);
 	blog(LOG_INFO, "Portable mode: %s", portable_mode ? "true" : "false");
 
 	if (safe_mode) {

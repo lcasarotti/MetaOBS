@@ -1066,7 +1066,8 @@ int main(int argc, char *argv[])
 			exit(0);
 
 		} else if (arg_is(argv[i], "--version", "-V")) {
-			std::cout << "MetaOBS - " << App()->GetVersionString(false) << "\n";
+			std::cout << "MetaOBS " << METAOBS_VERSION << " (OBS " << App()->GetVersionString(false)
+				  << ")\n";
 			exit(0);
 		}
 	}

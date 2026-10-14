@@ -1986,7 +1986,7 @@ void OBSBasic::UpdateTitleBar()
 	const char *profile = config_get_string(App()->GetUserConfig(), "Basic", "Profile");
 	const char *sceneCollection = config_get_string(App()->GetUserConfig(), "Basic", "SceneCollection");
 
-	name << "MetaOBS " << App()->GetVersionString(false);
+	name << "MetaOBS " << METAOBS_VERSION;
 	if (safe_mode) {
 		name << " (" << Str("TitleBar.SafeMode") << ")";
 	}

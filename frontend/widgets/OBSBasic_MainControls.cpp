@@ -457,8 +457,7 @@ void OBSBasic::on_actionShowWhatsNew_triggered()
 
 void OBSBasic::on_actionReleaseNotes_triggered()
 {
-	QString addr("https://github.com/obsproject/obs-studio/releases");
-	QUrl url(QString("%1/%2").arg(addr, obs_get_version_string()), QUrl::TolerantMode);
+	QUrl url(QString("https://github.com/%1/releases").arg(METAOBS_REPOSITORY), QUrl::TolerantMode);
 	QDesktopServices::openUrl(url);
 }
 

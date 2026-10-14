@@ -46,6 +46,7 @@ target_link_libraries(
 )
 
 include(cmake/feature-accessibility.cmake)
+include(cmake/feature-metaobs.cmake)
 include(cmake/ui-components.cmake)
 include(cmake/ui-dialogs.cmake)
 include(cmake/ui-docks.cmake)
