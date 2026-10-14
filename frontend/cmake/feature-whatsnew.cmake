@@ -1,6 +1,7 @@
 include_guard(DIRECTORY)
 
-option(ENABLE_WHATSNEW "Enable WhatsNew dialog" ON)
+# Off in MetaOBS: the dialog shows OBS's release news.
+option(ENABLE_WHATSNEW "Enable WhatsNew dialog" OFF)
 
 if(ENABLE_WHATSNEW AND TARGET OBS::browser-panels)
   if(OS_MACOS)
