@@ -15,6 +15,7 @@
 #include <QMenu>
 #include <QPointer>
 #include <QRegularExpression>
+#include <QScrollArea>
 #include <QTextDocumentFragment>
 #include <QTimer>
 #include <QWidget>
@@ -166,6 +167,17 @@ void DialogFixer::RepeatFocus(QWidget *dialog)
 
 bool DialogFixer::eventFilter(QObject *watched, QEvent *event)
 {
+	/* Scroll areas (the properties view, the Settings pages) take Tab focus
+	 * so they can be scrolled with the arrow keys. Screen readers announce
+	 * them as an unnamed group with nothing to do, and focused controls
+	 * are scrolled into view anyway, so keep them out of the Tab order. */
+	if (event->type() == QEvent::Polish) {
+		if (QScrollArea *scrollArea = qobject_cast<QScrollArea *>(watched)) {
+			scrollArea->setFocusPolicy(Qt::NoFocus);
+		}
+		return false;
+	}
+
 	if (event->type() == QEvent::WindowActivate && qobject_cast<QDialog *>(watched)) {
 		RepeatFocus(static_cast<QWidget *>(watched));
 		return false;

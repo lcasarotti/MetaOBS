@@ -14,6 +14,7 @@ namespace OBS::Accessibility {
  * - controls in form layout rows get the row's label as name when Qt cannot
  *   associate the label with them
  * - names that are untranslated locale keys are translated
+ * - scroll areas are taken out of the Tab order
  * - the focused control is announced again once a dialog is active */
 class DialogFixer : public QObject {
 	Q_OBJECT
