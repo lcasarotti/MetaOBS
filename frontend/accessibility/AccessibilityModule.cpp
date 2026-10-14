@@ -4,6 +4,9 @@
 #include "AccessibleSettings.hpp"
 #include "Announcer.hpp"
 #include "DialogFixer.hpp"
+#ifdef _WIN32
+#include "ForeignWindowFocus.hpp"
+#endif
 #include "OutputAnnouncements.hpp"
 #include "StatusMonitor.hpp"
 #include "StatusReadouts.hpp"
@@ -127,6 +130,9 @@ void Initialize(OBSBasic *main)
 	new StatusHotkeys(main);
 
 	qApp->installEventFilter(new DialogFixer(main));
+#ifdef _WIN32
+	qApp->installEventFilter(new ForeignWindowFocus(main));
+#endif
 
 	AddModeActionToMainWindow(main);
 

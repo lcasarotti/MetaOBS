@@ -55,6 +55,10 @@ target_sources(
     accessibility/TransitionDialogs.hpp
 )
 
+if(OS_WINDOWS)
+  target_sources(obs-studio PRIVATE accessibility/ForeignWindowFocus.cpp accessibility/ForeignWindowFocus.hpp)
+endif()
+
 # NVDA speaks announcements made while MetaOBS is in the background only
 # through its controller client, which NV Access publishes under the LGPL. It
 # is downloaded once into .deps and shipped next to the program, with its
