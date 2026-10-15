@@ -1,9 +1,11 @@
 #include "StreamDeckManager.hpp"
 #include "Announcer.hpp"
+#include "StreamDeckActions.hpp"
 
 #include <OBSApp.hpp>
 
 #include <qt-wrappers.hpp>
+#include <util/config-file.h>
 
 #include <QTimer>
 
@@ -18,8 +20,21 @@ constexpr int scanIntervalMilliseconds = 2000;
 /* The first reports of each connection are logged in full, to check the
  * report layout on devices that have not been tried yet. */
 constexpr int rawReportsToLog = 12;
+/* Keys are set up for this model until a Stream Deck is connected. */
+constexpr uint16_t defaultProductId = 0x0090;
+
+constexpr const char *section = "StreamDeck";
+constexpr const char *enabledKey = "Enabled";
+constexpr const char *announceActionsKey = "AnnounceActions";
+constexpr const char *keysKey = "Keys";
+constexpr const char *productIdKey = "ProductId";
 
 StreamDeckManager *instance = nullptr;
+
+config_t *GetConfig()
+{
+	return App()->GetUserConfig();
+}
 
 std::string ToHex(const std::vector<uint8_t> &bytes)
 {
@@ -48,6 +63,14 @@ void Announce(const QString &text)
 StreamDeckManager::StreamDeckManager(QObject *parent) : QObject(parent)
 {
 	instance = this;
+
+	config_t *config = GetConfig();
+	config_set_default_bool(config, section, enabledKey, true);
+	config_set_default_bool(config, section, announceActionsKey, true);
+	config_set_default_int(config, section, productIdKey, defaultProductId);
+
+	const char *json = config_get_string(config, section, keysKey);
+	mapping = StreamDeck::MappingFromJson(QT_UTF8(json ? json : ""));
 
 	scanTimer = new QTimer(this);
 	scanTimer->setInterval(scanIntervalMilliseconds);
@@ -81,6 +104,59 @@ const StreamDeck::Model *StreamDeckManager::ConnectedModel() const
 	return device ? &device->GetModel() : nullptr;
 }
 
+const StreamDeck::Model &StreamDeckManager::ConfiguredModel() const
+{
+	if (device) {
+		return device->GetModel();
+	}
+
+	auto productId = static_cast<uint16_t>(config_get_int(GetConfig(), section, productIdKey));
+	const StreamDeck::Model *model = StreamDeck::FindModel(StreamDeck::elgatoVendorId, productId);
+	if (!model) {
+		model = StreamDeck::FindModel(StreamDeck::elgatoVendorId, defaultProductId);
+	}
+	return *model;
+}
+
+bool StreamDeckManager::IsEnabled() const
+{
+	return config_get_bool(GetConfig(), section, enabledKey);
+}
+
+void StreamDeckManager::SetEnabled(bool enabled)
+{
+	config_set_bool(GetConfig(), section, enabledKey, enabled);
+	SaveConfig();
+}
+
+bool StreamDeckManager::GetAnnounceActions() const
+{
+	return config_get_bool(GetConfig(), section, announceActionsKey);
+}
+
+void StreamDeckManager::SetAnnounceActions(bool announce)
+{
+	config_set_bool(GetConfig(), section, announceActionsKey, announce);
+	SaveConfig();
+}
+
+void StreamDeckManager::SetMapping(const StreamDeck::Mapping &newMapping)
+{
+	mapping = newMapping;
+	config_set_string(GetConfig(), section, keysKey, QT_TO_UTF8(StreamDeck::MappingToJson(mapping)));
+	SaveConfig();
+}
+
+void StreamDeckManager::SaveConfig()
+{
+	config_save_safe(GetConfig(), "tmp", nullptr);
+}
+
+void StreamDeckManager::SetCaptured(bool captured_)
+{
+	captured = captured_;
+}
+
 void StreamDeckManager::Scan(bool announce)
 {
 	if (device) {
@@ -94,10 +170,11 @@ void StreamDeckManager::Scan(bool announce)
 		}
 
 		if (StreamDeck::IsElgatoAppRunning()) {
-			blog(LOG_WARNING, "[StreamDeck] The Elgato Stream Deck app is running and will also act on keys");
+			blog(LOG_WARNING, "[StreamDeck] The Elgato Stream Deck app is running and acts on keys too");
 		}
 
 		const char *name = opened->GetModel().name;
+		config_set_int(GetConfig(), section, productIdKey, opened->GetModel().productId);
 		StartReading(std::move(opened));
 		scanTimer->stop();
 
@@ -141,7 +218,7 @@ void StreamDeckManager::ReadLoop()
 
 	while (device->Read(report)) {
 		if (rawReportsLogged < rawReportsToLog) {
-			blog(LOG_INFO, "[StreamDeck] Report: %s", ToHex(report).c_str());
+			blog(LOG_DEBUG, "[StreamDeck] Report: %s", ToHex(report).c_str());
 			rawReportsLogged++;
 		}
 
@@ -165,19 +242,62 @@ void StreamDeckManager::HandleKeyStates(const std::vector<bool> &states)
 		return;
 	}
 
-	const StreamDeck::Model &model = device->GetModel();
 	for (size_t i = 0; i < states.size(); i++) {
-		if (states[i] == keyStates[i]) {
-			continue;
+		if (states[i] != keyStates[i]) {
+			keyStates[i] = states[i];
+			HandleKey(static_cast<int>(i), states[i]);
 		}
-		keyStates[i] = states[i];
+	}
+}
 
-		int key = static_cast<int>(i);
-		StreamDeck::KeyPosition position = StreamDeck::PositionOf(model, key);
-		blog(LOG_INFO, "[StreamDeck] Key %d (row %d, column %d) %s", key + 1, position.row, position.column,
-		     states[i] ? "pressed" : "released");
+void StreamDeckManager::HandleKey(int key, bool pressed)
+{
+	emit KeyChanged(key, pressed);
 
-		emit KeyChanged(key, states[i]);
+	if (!pressed) {
+		auto held = heldHotkeys.find(key);
+		if (held != heldHotkeys.end()) {
+			StreamDeck::Trigger(held->second, false);
+			heldHotkeys.erase(held);
+		}
+		return;
+	}
+
+	if (captured || !IsEnabled()) {
+		return;
+	}
+
+	auto assignment = mapping.find(key);
+	if (assignment == mapping.end()) {
+		return;
+	}
+
+	/* A new key stops what the last one is still saying. */
+	Announcer *announcer = Announcer::Get();
+	if (announcer && GetAnnounceActions()) {
+		announcer->Interrupt();
+	}
+
+	const StreamDeck::KeyAssignment &keyAssignment = assignment->second;
+	StreamDeck::ResolvedAction resolved = StreamDeck::Resolve(keyAssignment.action);
+	if (!resolved.IsValid()) {
+		if (announcer) {
+			announcer->AnnounceAtOnce(StreamDeck::Describe(keyAssignment.action));
+		}
+		return;
+	}
+
+	/* A toggle acts on the press. Other hotkeys are held for as long as
+	 * the key, for push-to-talk. */
+	if (keyAssignment.action.toggle) {
+		StreamDeck::Toggle(resolved);
+	} else {
+		StreamDeck::Trigger(resolved.id, true);
+		heldHotkeys[key] = resolved.id;
+	}
+
+	if (announcer && GetAnnounceActions()) {
+		announcer->AnnounceAtOnce(StreamDeck::Feedback(keyAssignment.action, keyAssignment.label));
 	}
 }
 
@@ -194,7 +314,7 @@ void StreamDeckManager::HandleDeviceLost()
 	 * stay on. */
 	for (size_t i = 0; i < keyStates.size(); i++) {
 		if (keyStates[i]) {
-			emit KeyChanged(static_cast<int>(i), false);
+			HandleKey(static_cast<int>(i), false);
 		}
 	}
 

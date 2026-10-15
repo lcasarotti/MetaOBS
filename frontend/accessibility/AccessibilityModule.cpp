@@ -11,6 +11,7 @@
 #include "StatusMonitor.hpp"
 #include "StatusReadouts.hpp"
 #ifdef _WIN32
+#include "StreamDeckDialog.hpp"
 #include "StreamDeckManager.hpp"
 #endif
 
@@ -18,9 +19,11 @@
 #include <utility/platform.hpp>
 #include <widgets/OBSBasic.hpp>
 
+#include <obs-frontend-api.h>
 #include <util/text-lookup.h>
 
 #include <QAction>
+#include <QApplication>
 #include <QMenu>
 #include <QPointer>
 
@@ -86,6 +89,21 @@ void AddModeActionToTray(OBSBasic *main)
 	QList<QAction *> actions = trayMenu->actions();
 	trayMenu->insertAction(actions.size() > 1 ? actions[1] : nullptr, action);
 }
+
+#ifdef _WIN32
+/* The Tools menu is shared by both windows. */
+void AddStreamDeckAction(OBSBasic *main)
+{
+	new StreamDeckManager(main);
+
+	auto action = static_cast<QAction *>(
+		obs_frontend_add_tools_menu_qaction(QT_TO_UTF8(QTStr("Accessibility.StreamDeck.MenuItem"))));
+	QObject::connect(action, &QAction::triggered, main, [main]() {
+		QWidget *parent = QApplication::activeWindow();
+		StreamDeckDialog::Open(parent ? parent : main);
+	});
+}
+#endif
 } // namespace
 
 void SetStartupMode(StartupMode mode)
@@ -135,7 +153,7 @@ void Initialize(OBSBasic *main)
 	qApp->installEventFilter(new DialogFixer(main));
 #ifdef _WIN32
 	qApp->installEventFilter(new ForeignWindowFocus(main));
-	new StreamDeckManager(main);
+	AddStreamDeckAction(main);
 #endif
 
 	AddModeActionToMainWindow(main);

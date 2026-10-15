@@ -61,10 +61,16 @@ if(OS_WINDOWS)
     PRIVATE
       accessibility/ForeignWindowFocus.cpp
       accessibility/ForeignWindowFocus.hpp
+      accessibility/StreamDeckActions.cpp
+      accessibility/StreamDeckActions.hpp
+      accessibility/StreamDeckDialog.cpp
+      accessibility/StreamDeckDialog.hpp
       accessibility/StreamDeckHid.cpp
       accessibility/StreamDeckHid.hpp
       accessibility/StreamDeckManager.cpp
       accessibility/StreamDeckManager.hpp
+      accessibility/StreamDeckMapping.cpp
+      accessibility/StreamDeckMapping.hpp
       accessibility/StreamDeckProtocol.cpp
       accessibility/StreamDeckProtocol.hpp
   )

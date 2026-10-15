@@ -3,6 +3,7 @@
 
 #include "a11y-test.hpp"
 
+#include <accessibility/StreamDeckMapping.hpp>
 #include <accessibility/StreamDeckProtocol.hpp>
 
 namespace StreamDeck = OBS::Accessibility::StreamDeck;
@@ -143,4 +144,61 @@ A11Y_TEST(StreamDeckKeysAreNamedByPosition)
 	A11Y_CHECK(wide.rowName == Row::Invalid && wide.columnName == Column::Invalid);
 
 	A11Y_CHECK(StreamDeck::PositionOf(Mini(), 6).row == 0);
+}
+
+A11Y_TEST(StreamDeckMappingSurvivesSaving)
+{
+	StreamDeck::Mapping mapping;
+
+	StreamDeck::KeyAssignment streaming;
+	streaming.action.owner = StreamDeck::HotkeyOwner::Frontend;
+	streaming.action.name = "OBSBasic.StartStreaming";
+	streaming.action.toggle = true;
+	streaming.label = "Diretta";
+	mapping[0] = streaming;
+
+	StreamDeck::KeyAssignment mute;
+	mute.action.owner = StreamDeck::HotkeyOwner::Source;
+	mute.action.context = "1f0c3c4e-uuid";
+	mute.action.contextName = "Microfono \"principale\"";
+	mute.action.name = "libobs.mute";
+	mapping[5] = mute;
+
+	StreamDeck::Mapping loaded = StreamDeck::MappingFromJson(StreamDeck::MappingToJson(mapping));
+	A11Y_CHECK(loaded.size() == 2);
+	if (loaded.size() != 2) {
+		return;
+	}
+
+	const StreamDeck::KeyAssignment &first = loaded[0];
+	A11Y_CHECK(first.action.owner == StreamDeck::HotkeyOwner::Frontend);
+	A11Y_CHECK(first.action.name == "OBSBasic.StartStreaming" && first.action.toggle);
+	A11Y_CHECK(first.label == "Diretta" && first.action.context.isEmpty());
+
+	const StreamDeck::KeyAssignment &last = loaded[5];
+	A11Y_CHECK(last.action.owner == StreamDeck::HotkeyOwner::Source && !last.action.toggle);
+	A11Y_CHECK(last.action.context == "1f0c3c4e-uuid");
+	A11Y_CHECK(last.action.contextName == "Microfono \"principale\"");
+	A11Y_CHECK(last.label.isEmpty());
+}
+
+A11Y_TEST(StreamDeckMappingSkipsDamagedEntries)
+{
+	A11Y_CHECK(StreamDeck::MappingFromJson("").empty());
+	A11Y_CHECK(StreamDeck::MappingFromJson("not json").empty());
+	A11Y_CHECK(StreamDeck::MappingFromJson("[1, 2]").empty());
+
+	QString json = R"({"version": 1, "keys": [
+		{"key": 0, "owner": "frontend", "name": "OBSBasic.StartRecording"},
+		{"key": 1, "owner": "nobody", "name": "OBSBasic.StopRecording"},
+		{"key": 2, "owner": "frontend", "name": ""},
+		{"key": -1, "owner": "frontend", "name": "OBSBasic.Screenshot"},
+		{"key": 999, "owner": "frontend", "name": "OBSBasic.Screenshot"},
+		{"owner": "frontend", "name": "OBSBasic.Screenshot"},
+		"text"
+	]})";
+
+	StreamDeck::Mapping mapping = StreamDeck::MappingFromJson(json);
+	A11Y_CHECK(mapping.size() == 1);
+	A11Y_CHECK(mapping.count(0) == 1 && mapping[0].action.name == "OBSBasic.StartRecording");
 }
