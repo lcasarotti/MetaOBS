@@ -26,6 +26,8 @@ target_sources(
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleFormat.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleLayout.cpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleLayout.hpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckImages.cpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckImages.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckMapping.cpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckMapping.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckProtocol.cpp"

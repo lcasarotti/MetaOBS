@@ -3,12 +3,15 @@
 #include "StreamDeckHid.hpp"
 #include "StreamDeckMapping.hpp"
 
-#include <obs.h>
+#include <obs-frontend-api.h>
+#include <obs.hpp>
 
 #include <QObject>
 
 #include <atomic>
+#include <condition_variable>
 #include <map>
+#include <mutex>
 #include <memory>
 #include <thread>
 #include <vector>
@@ -39,6 +42,11 @@ public:
 	bool IsEnabled() const;
 	void SetEnabled(bool enabled);
 
+	/* Brightness of the key displays, in percent. Set save to false to
+	 * try a value without keeping it. */
+	int GetBrightness() const;
+	void SetBrightness(int percent, bool save);
+
 	/* Whether pressing a key speaks what its action did. */
 	bool GetAnnounceActions() const;
 	void SetAnnounceActions(bool announce);
@@ -57,18 +65,41 @@ signals:
 private:
 	void Scan(bool announce);
 	void StartReading(std::unique_ptr<StreamDeck::HidDevice> newDevice);
-	void StopReading();
+	void StopReading(bool clearDisplays = false);
 	void ReadLoop();
 	void HandleKeyStates(const std::vector<bool> &states);
 	void HandleKey(int key, bool pressed);
 	void HandleDeviceLost();
 	void SaveConfig();
 
+	/* Shows each key's label on its display. Only keys whose label or
+	 * availability changed are sent again, unless force is set. */
+	void RefreshKeyImages(bool force = false);
+	void ScheduleKeyImageRefresh();
+	void WriteLoop();
+	static void OnFrontendEvent(enum obs_frontend_event event, void *data);
+	static void OnSourceSignal(void *data, calldata_t *);
+
 	QTimer *scanTimer = nullptr;
 	std::unique_ptr<StreamDeck::HidDevice> device;
 	std::thread reader;
 	std::atomic<bool> stopping = false;
 	std::vector<bool> keyStates;
+
+	/* Images are sent on a thread of their own, since a key takes about
+	 * twenty reports. Newer images replace pending ones for the same
+	 * key. */
+	std::thread writer;
+	std::mutex writerMutex;
+	std::condition_variable writerWake;
+	bool writerStopping = false;
+	std::map<int, std::vector<std::vector<uint8_t>>> pendingImages;
+	/* What each key shows, to send only what changed. */
+	std::map<int, QString> shownImages;
+	QTimer *imageRefreshTimer = nullptr;
+	/* Set once OBS starts shutting down and hotkeys go away. */
+	bool exiting = false;
+	std::vector<OBSSignal> sourceSignals;
 
 	StreamDeck::Mapping mapping;
 	bool captured = false;

@@ -33,7 +33,8 @@ struct Model {
 	int rows;
 	int imageSize;
 	ImageFormat imageFormat;
-	/* Clockwise rotation, in degrees, applied to an image before it is sent. */
+	/* How an image is turned before it is sent: first rotated
+	 * counterclockwise by this many degrees, then flipped. */
 	int imageRotation;
 	bool flipHorizontally;
 	bool flipVertically;

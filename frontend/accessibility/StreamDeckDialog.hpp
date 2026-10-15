@@ -13,6 +13,7 @@ class QCheckBox;
 class QLineEdit;
 class QListWidget;
 class QPushButton;
+class QSpinBox;
 class QTreeWidget;
 class QTreeWidgetItem;
 
@@ -56,6 +57,7 @@ private:
 	QPushButton *removeButton;
 	QPushButton *tryButton;
 	QCheckBox *announceActions;
+	QSpinBox *brightness;
 };
 
 /* Lists every OBS hotkey by category, with a search field, to choose the one

@@ -67,6 +67,8 @@ if(OS_WINDOWS)
       accessibility/StreamDeckDialog.hpp
       accessibility/StreamDeckHid.cpp
       accessibility/StreamDeckHid.hpp
+      accessibility/StreamDeckImages.cpp
+      accessibility/StreamDeckImages.hpp
       accessibility/StreamDeckManager.cpp
       accessibility/StreamDeckManager.hpp
       accessibility/StreamDeckMapping.cpp

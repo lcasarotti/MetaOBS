@@ -3,8 +3,14 @@
 
 #include "a11y-test.hpp"
 
+#include <accessibility/StreamDeckImages.hpp>
 #include <accessibility/StreamDeckMapping.hpp>
 #include <accessibility/StreamDeckProtocol.hpp>
+
+#include <QColor>
+#include <QImage>
+
+#include <algorithm>
 
 namespace StreamDeck = OBS::Accessibility::StreamDeck;
 
@@ -17,6 +23,25 @@ const StreamDeck::Model &Mini()
 const StreamDeck::Model &MK2()
 {
 	return *StreamDeck::FindModel(StreamDeck::elgatoVendorId, 0x0080);
+}
+
+uint32_t Read32(const std::vector<uint8_t> &bytes, size_t offset)
+{
+	return bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 |
+	       static_cast<uint32_t>(bytes[offset + 3]) << 24;
+}
+
+/* The brightest channel of any pixel. */
+int Brightest(const QImage &image)
+{
+	int brightest = 0;
+	for (int y = 0; y < image.height(); y++) {
+		for (int x = 0; x < image.width(); x++) {
+			QColor color = image.pixelColor(x, y);
+			brightest = std::max({brightest, color.red(), color.green(), color.blue()});
+		}
+	}
+	return brightest;
 }
 } // namespace
 
@@ -201,4 +226,57 @@ A11Y_TEST(StreamDeckMappingSkipsDamagedEntries)
 	StreamDeck::Mapping mapping = StreamDeck::MappingFromJson(json);
 	A11Y_CHECK(mapping.size() == 1);
 	A11Y_CHECK(mapping.count(0) == 1 && mapping[0].action.name == "OBSBasic.StartRecording");
+}
+
+A11Y_TEST(StreamDeckBitmapsAreStoredBottomUp)
+{
+	QImage image(2, 2, QImage::Format_RGB888);
+	image.fill(Qt::black);
+	image.setPixelColor(0, 0, QColor(255, 0, 0));
+
+	std::vector<uint8_t> bmp = StreamDeck::EncodeBmp(image);
+	/* Rows of 6 bytes are padded to 8. */
+	A11Y_CHECK(bmp.size() == 54 + 2 * 8);
+	A11Y_CHECK(bmp[0] == 'B' && bmp[1] == 'M' && Read32(bmp, 2) == bmp.size());
+	A11Y_CHECK(Read32(bmp, 10) == 54 && Read32(bmp, 18) == 2 && Read32(bmp, 22) == 2);
+	A11Y_CHECK(bmp[28] == 24);
+
+	/* The top row comes last, in blue, green, red order. */
+	A11Y_CHECK(bmp[54 + 8] == 0 && bmp[54 + 8 + 1] == 0 && bmp[54 + 8 + 2] == 255);
+	A11Y_CHECK(bmp[54 + 2] == 0);
+}
+
+A11Y_TEST(StreamDeckImagesAreTurnedForTheDevice)
+{
+	QImage image(80, 80, QImage::Format_RGB888);
+	image.fill(Qt::black);
+	image.setPixelColor(10, 0, QColor(255, 0, 0));
+
+	/* The Mini turns the image a quarter counterclockwise, then upside
+	 * down: together, rows become columns. */
+	QImage mini = StreamDeck::ToDeviceOrientation(Mini(), image);
+	A11Y_CHECK(mini.size() == image.size());
+	A11Y_CHECK(mini.pixelColor(0, 10) == QColor(255, 0, 0));
+
+	/* The 15 key model turns it upside down. */
+	QImage square(72, 72, QImage::Format_RGB888);
+	square.fill(Qt::black);
+	square.setPixelColor(10, 0, QColor(255, 0, 0));
+	A11Y_CHECK(StreamDeck::ToDeviceOrientation(MK2(), square).pixelColor(61, 71) == QColor(255, 0, 0));
+
+	std::vector<uint8_t> encoded = StreamDeck::EncodeKeyImage(Mini(), image);
+	A11Y_CHECK(encoded.size() == 54 + 80 * 80 * 3);
+}
+
+A11Y_TEST(StreamDeckLabelsAreDrawnOnTheKey)
+{
+	QImage empty = StreamDeck::RenderLabel(Mini(), "", true);
+	A11Y_CHECK(empty.width() == 80 && Brightest(empty) == 0);
+
+	QImage label = StreamDeck::RenderLabel(Mini(), "Microfono: audio disattivato", true);
+	A11Y_CHECK(Brightest(label) > 200);
+
+	/* Unavailable actions are drawn in gray. */
+	QImage unavailable = StreamDeck::RenderLabel(Mini(), "Microfono", false);
+	A11Y_CHECK(Brightest(unavailable) > 60 && Brightest(unavailable) <= 128);
 }

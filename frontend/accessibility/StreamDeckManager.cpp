@@ -1,6 +1,7 @@
 #include "StreamDeckManager.hpp"
 #include "Announcer.hpp"
 #include "StreamDeckActions.hpp"
+#include "StreamDeckImages.hpp"
 
 #include <OBSApp.hpp>
 
@@ -22,12 +23,17 @@ constexpr int scanIntervalMilliseconds = 2000;
 constexpr int rawReportsToLog = 12;
 /* Keys are set up for this model until a Stream Deck is connected. */
 constexpr uint16_t defaultProductId = 0x0090;
+constexpr int defaultBrightness = 60;
+/* Sources come and go in bursts, when a scene collection loads, for
+ * instance. */
+constexpr int imageRefreshDelayMilliseconds = 300;
 
 constexpr const char *section = "StreamDeck";
 constexpr const char *enabledKey = "Enabled";
 constexpr const char *announceActionsKey = "AnnounceActions";
 constexpr const char *keysKey = "Keys";
 constexpr const char *productIdKey = "ProductId";
+constexpr const char *brightnessKey = "Brightness";
 
 StreamDeckManager *instance = nullptr;
 
@@ -68,9 +74,23 @@ StreamDeckManager::StreamDeckManager(QObject *parent) : QObject(parent)
 	config_set_default_bool(config, section, enabledKey, true);
 	config_set_default_bool(config, section, announceActionsKey, true);
 	config_set_default_int(config, section, productIdKey, defaultProductId);
+	config_set_default_int(config, section, brightnessKey, defaultBrightness);
 
 	const char *json = config_get_string(config, section, keysKey);
 	mapping = StreamDeck::MappingFromJson(QT_UTF8(json ? json : ""));
+
+	imageRefreshTimer = new QTimer(this);
+	imageRefreshTimer->setSingleShot(true);
+	imageRefreshTimer->setInterval(imageRefreshDelayMilliseconds);
+	connect(imageRefreshTimer, &QTimer::timeout, this, [this]() { RefreshKeyImages(); });
+
+	/* A key's action becomes unavailable, or available again, when its
+	 * source is removed, added or renamed. */
+	signal_handler_t *handler = obs_get_signal_handler();
+	for (const char *signal : {"source_create", "source_remove", "source_rename"}) {
+		sourceSignals.emplace_back(handler, signal, OnSourceSignal, this);
+	}
+	obs_frontend_add_event_callback(OnFrontendEvent, this);
 
 	scanTimer = new QTimer(this);
 	scanTimer->setInterval(scanIntervalMilliseconds);
@@ -88,7 +108,12 @@ StreamDeckManager::StreamDeckManager(QObject *parent) : QObject(parent)
 
 StreamDeckManager::~StreamDeckManager()
 {
-	StopReading();
+	obs_frontend_remove_event_callback(OnFrontendEvent, this);
+	sourceSignals.clear();
+
+	/* Clears the displays, which would otherwise show actions nothing
+	 * runs any more. */
+	StopReading(true);
 	if (instance == this) {
 		instance = nullptr;
 	}
@@ -127,6 +152,23 @@ void StreamDeckManager::SetEnabled(bool enabled)
 {
 	config_set_bool(GetConfig(), section, enabledKey, enabled);
 	SaveConfig();
+	RefreshKeyImages();
+}
+
+int StreamDeckManager::GetBrightness() const
+{
+	return static_cast<int>(config_get_int(GetConfig(), section, brightnessKey));
+}
+
+void StreamDeckManager::SetBrightness(int percent, bool save)
+{
+	if (device) {
+		device->SetFeature(StreamDeck::BrightnessReport(device->GetModel(), percent));
+	}
+	if (save) {
+		config_set_int(GetConfig(), section, brightnessKey, percent);
+		SaveConfig();
+	}
 }
 
 bool StreamDeckManager::GetAnnounceActions() const
@@ -145,6 +187,7 @@ void StreamDeckManager::SetMapping(const StreamDeck::Mapping &newMapping)
 	mapping = newMapping;
 	config_set_string(GetConfig(), section, keysKey, QT_TO_UTF8(StreamDeck::MappingToJson(mapping)));
 	SaveConfig();
+	RefreshKeyImages();
 }
 
 void StreamDeckManager::SaveConfig()
@@ -192,12 +235,32 @@ void StreamDeckManager::StartReading(std::unique_ptr<StreamDeck::HidDevice> newD
 	keyStates.assign(static_cast<size_t>(device->GetModel().keyCount), false);
 	stopping = false;
 	reader = std::thread([this]() { ReadLoop(); });
+
+	writerStopping = false;
+	writer = std::thread([this]() { WriteLoop(); });
+
+	SetBrightness(GetBrightness(), false);
+	RefreshKeyImages(true);
 }
 
-void StreamDeckManager::StopReading()
+void StreamDeckManager::StopReading(bool clearDisplays)
 {
 	if (!device) {
 		return;
+	}
+
+	{
+		std::lock_guard lock(writerMutex);
+		writerStopping = true;
+		pendingImages.clear();
+	}
+	writerWake.notify_all();
+	if (writer.joinable()) {
+		writer.join();
+	}
+
+	if (clearDisplays) {
+		device->SetFeature(StreamDeck::ResetReport(device->GetModel()));
 	}
 
 	stopping = true;
@@ -207,6 +270,106 @@ void StreamDeckManager::StopReading()
 	}
 	device.reset();
 	keyStates.clear();
+	shownImages.clear();
+}
+
+void StreamDeckManager::RefreshKeyImages(bool force)
+{
+	if (!device || exiting) {
+		return;
+	}
+
+	const StreamDeck::Model &model = device->GetModel();
+	bool enabled = IsEnabled();
+
+	for (int key = 0; key < model.keyCount; key++) {
+		QString label;
+		bool available = false;
+
+		auto assignment = mapping.find(key);
+		if (enabled && assignment != mapping.end()) {
+			const StreamDeck::KeyAssignment &keyAssignment = assignment->second;
+			available = StreamDeck::Resolve(keyAssignment.action).IsValid();
+			label = keyAssignment.label.isEmpty() ? StreamDeck::Describe(keyAssignment.action)
+							      : keyAssignment.label;
+		}
+
+		/* Tells apart the same label with and without its action. */
+		QString shown = (available ? "1" : "0") + label;
+		auto previous = shownImages.find(key);
+		if (!force && previous != shownImages.end() && previous->second == shown) {
+			continue;
+		}
+		shownImages[key] = shown;
+
+		QImage image = StreamDeck::RenderLabel(model, label, available);
+		std::vector<uint8_t> encoded = StreamDeck::EncodeKeyImage(model, image);
+		{
+			std::lock_guard lock(writerMutex);
+			pendingImages[key] = StreamDeck::ImageReports(model, key, encoded);
+		}
+		writerWake.notify_all();
+	}
+}
+
+void StreamDeckManager::ScheduleKeyImageRefresh()
+{
+	if (!exiting) {
+		imageRefreshTimer->start();
+	}
+}
+
+/* Runs on the writer thread. */
+void StreamDeckManager::WriteLoop()
+{
+	for (;;) {
+		std::vector<std::vector<uint8_t>> reports;
+		{
+			std::unique_lock lock(writerMutex);
+			writerWake.wait(lock, [this]() { return writerStopping || !pendingImages.empty(); });
+			if (writerStopping) {
+				return;
+			}
+
+			auto next = pendingImages.begin();
+			reports = std::move(next->second);
+			pendingImages.erase(next);
+		}
+
+		for (const std::vector<uint8_t> &report : reports) {
+			if (!device->Write(report)) {
+				blog(LOG_WARNING, "[StreamDeck] Could not send a key image");
+				break;
+			}
+		}
+	}
+}
+
+void StreamDeckManager::OnFrontendEvent(enum obs_frontend_event event, void *data)
+{
+	auto manager = static_cast<StreamDeckManager *>(data);
+
+	switch (event) {
+	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CHANGED:
+	case OBS_FRONTEND_EVENT_SCENE_LIST_CHANGED:
+	case OBS_FRONTEND_EVENT_PROFILE_CHANGED:
+		manager->ScheduleKeyImageRefresh();
+		break;
+	case OBS_FRONTEND_EVENT_EXIT:
+		manager->exiting = true;
+		manager->sourceSignals.clear();
+		manager->imageRefreshTimer->stop();
+		break;
+	default:
+		break;
+	}
+}
+
+/* Source signals come from any thread. */
+void StreamDeckManager::OnSourceSignal(void *data, calldata_t *)
+{
+	auto manager = static_cast<StreamDeckManager *>(data);
+	QMetaObject::invokeMethod(manager, &StreamDeckManager::ScheduleKeyImageRefresh, Qt::QueuedConnection);
 }
 
 /* Runs on the reader thread. */

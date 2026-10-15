@@ -15,6 +15,7 @@
 #include <QLineEdit>
 #include <QListWidget>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
@@ -61,6 +62,11 @@ StreamDeckDialog::StreamDeckDialog(StreamDeckManager *manager_, QWidget *parent)
 	announceActions = new QCheckBox(QTStr("Accessibility.StreamDeck.AnnounceActions"), this);
 	announceActions->setChecked(manager->GetAnnounceActions());
 
+	brightness = new QSpinBox(this);
+	brightness->setRange(0, 100);
+	brightness->setSuffix(" %");
+	brightness->setValue(manager->GetBrightness());
+
 	QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 
 	QFormLayout *statusLayout = new QFormLayout;
@@ -83,6 +89,10 @@ StreamDeckDialog::StreamDeckDialog(StreamDeckManager *manager_, QWidget *parent)
 	layout->addLayout(labelLayout);
 	layout->addLayout(keyButtons);
 	layout->addWidget(announceActions);
+
+	QFormLayout *brightnessLayout = new QFormLayout;
+	brightnessLayout->addRow(QTStr("Accessibility.StreamDeck.Brightness"), brightness);
+	layout->addLayout(brightnessLayout);
 	layout->addWidget(buttons);
 
 	/* Enter on a key assigns it rather than closing the dialog. */
@@ -111,6 +121,11 @@ StreamDeckDialog::StreamDeckDialog(StreamDeckManager *manager_, QWidget *parent)
 		accept();
 	});
 	connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+	/* The keys show each brightness at once, and go back to the saved
+	 * one on Cancel. */
+	connect(brightness, &QSpinBox::valueChanged, this, [this](int value) { manager->SetBrightness(value, false); });
+	connect(this, &QDialog::rejected, this, [this]() { manager->SetBrightness(manager->GetBrightness(), false); });
 
 	connect(manager, &StreamDeckManager::KeyChanged, this, [this](int key, bool pressed) {
 		if (pressed) {
@@ -305,6 +320,7 @@ void StreamDeckDialog::Save()
 	manager->SetMapping(mapping);
 	manager->SetEnabled(enabled->isChecked());
 	manager->SetAnnounceActions(announceActions->isChecked());
+	manager->SetBrightness(brightness->value(), true);
 }
 
 StreamDeckActionPicker::StreamDeckActionPicker(const QString &keyName, const StreamDeck::HotkeyRef &current,
