@@ -26,6 +26,8 @@ target_sources(
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleFormat.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleLayout.cpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleLayout.hpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckProtocol.cpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckProtocol.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/utility/MetaOBSRelease.cpp"
     "${CMAKE_SOURCE_DIR}/frontend/utility/MetaOBSRelease.hpp"
     a11y-test.hpp
@@ -35,6 +37,7 @@ target_sources(
     test-main.cpp
     test-properties-view.cpp
     test-release.cpp
+    test-streamdeck.cpp
 )
 
 target_include_directories(obs-a11y-tests PRIVATE "${CMAKE_SOURCE_DIR}/frontend")
@@ -52,7 +55,7 @@ set_target_properties_obs(obs-a11y-tests PROPERTIES FOLDER "Tests and Examples")
 
 # Each group name is passed to the executable, which runs the test cases whose
 # names start with it.
-foreach(test_group IN ITEMS Audit Format Layout PropertiesView Release)
+foreach(test_group IN ITEMS Audit Format Layout PropertiesView Release StreamDeck)
   add_test(
     NAME obs-a11y-${test_group}
     COMMAND "${OBS_OUTPUT_DIR}/$<CONFIG>/${OBS_EXECUTABLE_DESTINATION}/obs-a11y-tests" ${test_group}

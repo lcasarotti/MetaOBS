@@ -10,6 +10,9 @@
 #include "OutputAnnouncements.hpp"
 #include "StatusMonitor.hpp"
 #include "StatusReadouts.hpp"
+#ifdef _WIN32
+#include "StreamDeckManager.hpp"
+#endif
 
 #include <OBSApp.hpp>
 #include <utility/platform.hpp>
@@ -132,6 +135,7 @@ void Initialize(OBSBasic *main)
 	qApp->installEventFilter(new DialogFixer(main));
 #ifdef _WIN32
 	qApp->installEventFilter(new ForeignWindowFocus(main));
+	new StreamDeckManager(main);
 #endif
 
 	AddModeActionToMainWindow(main);

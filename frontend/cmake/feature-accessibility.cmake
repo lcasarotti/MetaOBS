@@ -56,7 +56,19 @@ target_sources(
 )
 
 if(OS_WINDOWS)
-  target_sources(obs-studio PRIVATE accessibility/ForeignWindowFocus.cpp accessibility/ForeignWindowFocus.hpp)
+  target_sources(
+    obs-studio
+    PRIVATE
+      accessibility/ForeignWindowFocus.cpp
+      accessibility/ForeignWindowFocus.hpp
+      accessibility/StreamDeckHid.cpp
+      accessibility/StreamDeckHid.hpp
+      accessibility/StreamDeckManager.cpp
+      accessibility/StreamDeckManager.hpp
+      accessibility/StreamDeckProtocol.cpp
+      accessibility/StreamDeckProtocol.hpp
+  )
+  target_link_libraries(obs-studio PRIVATE hid setupapi)
 endif()
 
 # NVDA speaks announcements made while MetaOBS is in the background only
