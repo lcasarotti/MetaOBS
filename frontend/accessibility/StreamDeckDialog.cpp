@@ -372,6 +372,7 @@ StreamDeckActionPicker::StreamDeckActionPicker(const QString &keyName, const Str
 		}
 	}
 	tree->expandAll();
+	KeepTreeExpansionAccessible(tree);
 
 	connect(search, &QLineEdit::textChanged, this, &StreamDeckActionPicker::Filter);
 	connect(tree, &QTreeWidget::currentItemChanged, this, [this]() {

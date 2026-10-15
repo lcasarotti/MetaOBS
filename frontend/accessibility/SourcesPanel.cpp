@@ -98,6 +98,7 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 	 * Ctrl+Space, to remove, move or group them together. */
 	view->setSelectionMode(QAbstractItemView::ExtendedSelection);
 	view->setEditTriggers(QAbstractItemView::NoEditTriggers);
+	KeepTreeExpansionAccessible(view);
 
 	model = new QStandardItemModel(this);
 	view->setModel(model);

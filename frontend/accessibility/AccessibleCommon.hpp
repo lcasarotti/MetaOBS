@@ -13,6 +13,7 @@ class QAbstractItemView;
 class QAction;
 class QContextMenuEvent;
 class QMenu;
+class QTreeView;
 class QWidget;
 
 namespace OBS::Accessibility {
@@ -63,6 +64,13 @@ bool IsHiddenInMixer(obs_source_t *source);
  * like the main window's Duplicate, without switching to the copy. Returns
  * the new scene, or nullptr if the user cancelled. */
 OBSSource DuplicateSceneWithUndo(QWidget *parent, OBSBasic *main, obs_source_t *sceneSource);
+
+/* Qt does not tell screen readers when a tree branch is collapsed, so the
+ * rows below it keep describing the hidden items, and after a branch is
+ * expanded it rebuilds the tree without reporting the focused item again.
+ * Either way NVDA may not read the branches. This rebuilds the tree's
+ * accessible rows and reports the current item after each change. */
+void KeepTreeExpansionAccessible(QTreeView *view);
 
 /* Opens a panel's menu as the context menu of a list, next to the current
  * item when it was opened from the keyboard. */

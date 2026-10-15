@@ -9,9 +9,13 @@
 #include <qt-wrappers.hpp>
 
 #include <QAbstractItemView>
+#include <QAccessible>
 #include <QAction>
 #include <QContextMenuEvent>
 #include <QMenu>
+#include <QPointer>
+#include <QTimer>
+#include <QTreeView>
 
 #include <algorithm>
 #include <functional>
@@ -251,6 +255,54 @@ OBSSource DuplicateSceneWithUndo(QWidget *parent, OBSBasic *main, obs_source_t *
 	main->undo_s.add_action(QTStr("Undo.Scene.Duplicate").arg(name.c_str()), undo, redo, name,
 				obs_source_get_uuid(sceneSource));
 	return copySource;
+}
+
+namespace {
+void RebuildTreeAccessibility(QTreeView *view, const QModelIndex &changed)
+{
+	if (!QAccessible::isActive()) {
+		return;
+	}
+
+	QAccessibleTableModelChangeEvent reset(view, QAccessibleTableModelChangeEvent::ModelReset);
+	QAccessible::updateAccessibility(&reset);
+
+	/* Only a branch the user expanded or collapsed is read again, not
+	 * branches the program expands while it fills the tree. */
+	QModelIndex current = view->currentIndex();
+	if (!current.isValid() || current != changed || !view->hasFocus()) {
+		return;
+	}
+
+	/* The accessible tree has one child per visible row and column, after
+	 * the header row, which counts even when hidden. */
+	int row = 0;
+	for (QModelIndex above = view->indexAbove(current); above.isValid(); above = view->indexAbove(above)) {
+		row++;
+	}
+	int columns = view->model()->columnCount();
+
+	QAccessibleEvent focus(view, QAccessible::Focus);
+	focus.setChild((row + 1) * columns + current.column());
+	QAccessible::updateAccessibility(&focus);
+}
+} // namespace
+
+void KeepTreeExpansionAccessible(QTreeView *view)
+{
+	/* Waits for the view to finish its own layout, which can also reset
+	 * its accessible rows. */
+	auto rebuildLater = [view](const QModelIndex &index) {
+		QPointer<QTreeView> guarded(view);
+		QPersistentModelIndex changed(index);
+		QTimer::singleShot(0, view, [guarded, changed]() {
+			if (guarded) {
+				RebuildTreeAccessibility(guarded, changed);
+			}
+		});
+	};
+	QObject::connect(view, &QTreeView::expanded, view, rebuildLater);
+	QObject::connect(view, &QTreeView::collapsed, view, rebuildLater);
 }
 
 void ExecContextMenu(QAbstractItemView *view, QMenu *menu, QContextMenuEvent *event)
