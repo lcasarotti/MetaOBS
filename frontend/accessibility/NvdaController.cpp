@@ -83,6 +83,13 @@ bool NvdaController::Speak(const QString &text, bool interrupt) const
 	std::wstring wideText = text.toStdWString();
 	return library->speakText(wideText.c_str()) == 0;
 }
+
+void NvdaController::Cancel() const
+{
+	if (IsRunning()) {
+		library->cancelSpeech();
+	}
+}
 #else
 struct NvdaController::Library {};
 
@@ -103,6 +110,8 @@ bool NvdaController::Speak(const QString &, bool) const
 {
 	return false;
 }
+
+void NvdaController::Cancel() const {}
 #endif
 
 } // namespace OBS::Accessibility

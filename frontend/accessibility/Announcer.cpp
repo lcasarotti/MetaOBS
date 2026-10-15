@@ -79,6 +79,33 @@ void Announcer::Announce(const QString &text, Priority priority, bool force)
 	blog(LOG_DEBUG, "[Accessibility] Announcement %s: %s", spoken ? "sent" : "not sent", QT_TO_UTF8(plainText));
 }
 
+void Announcer::Interrupt()
+{
+	nvdaController->Cancel();
+}
+
+void Announcer::AnnounceAtOnce(const QString &text)
+{
+	QString plainText = ToPlainText(text);
+	if (plainText.isEmpty()) {
+		return;
+	}
+
+	lastText = plainText;
+	lastTextTimer.start();
+
+	/* UI Automation notifications cannot interrupt speech, so NVDA's
+	 * library speaks whenever it can, also while OBS is focused. */
+	SpeechBackend backend = Settings::GetSpeechBackend();
+	bool spoken = backend != SpeechBackend::UIAutomation && nvdaController->Speak(plainText, true);
+	if (!spoken) {
+		Interrupt();
+		spoken = Speak(plainText, Priority::High, backend);
+	}
+
+	blog(LOG_DEBUG, "[Accessibility] Announcement %s: %s", spoken ? "sent" : "not sent", QT_TO_UTF8(plainText));
+}
+
 bool Announcer::TestBackend(const QString &text, SpeechBackend backend)
 {
 	return Speak(ToPlainText(text), Priority::High, backend);

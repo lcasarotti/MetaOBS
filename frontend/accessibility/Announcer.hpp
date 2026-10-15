@@ -34,6 +34,14 @@ public:
 	 * announcement level (used for explicit user requests). */
 	void Announce(const QString &text, Priority priority = Priority::Normal, bool force = false);
 
+	/* Stops the announcement being spoken. Only NVDA allows it. */
+	void Interrupt();
+
+	/* Stops what is being spoken and speaks the text at once, whatever the
+	 * announcement level and even if it repeats the last announcement: for
+	 * the result of a key the user has just pressed. */
+	void AnnounceAtOnce(const QString &text);
+
 	/* Can be called from any thread. */
 	static void AnnounceFromAnyThread(const QString &text, Priority priority = Priority::Normal);
 

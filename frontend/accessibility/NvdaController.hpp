@@ -19,6 +19,8 @@ public:
 	bool IsLibraryLoaded() const;
 	bool IsRunning() const;
 	bool Speak(const QString &text, bool interrupt) const;
+	/* Stops what NVDA is saying. */
+	void Cancel() const;
 
 private:
 	struct Library;
