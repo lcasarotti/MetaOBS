@@ -3,6 +3,7 @@
 #include "AccessibleFormat.hpp"
 #include "AudioActions.hpp"
 #include "AudioPropertiesDialog.hpp"
+#include "MidiWidgetProperties.hpp"
 
 #include <OBSApp.hpp>
 #include <widgets/OBSBasic.hpp>
@@ -109,6 +110,7 @@ AudioPanel::AudioPanel(OBSBasic *main_, QWidget *parent)
 	listView->panel = this;
 	view = listView;
 	view->setAccessibleName(QTStr("Mixer"));
+	view->setProperty(Midi::targetProperty, "audioSources");
 	view->setSelectionMode(QAbstractItemView::SingleSelection);
 	view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 

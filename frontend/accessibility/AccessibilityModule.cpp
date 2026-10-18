@@ -11,6 +11,9 @@
 #include "StatusMonitor.hpp"
 #include "StatusReadouts.hpp"
 #ifdef _WIN32
+#include "MidiDialog.hpp"
+#include "MidiLearn.hpp"
+#include "MidiManager.hpp"
 #include "StreamDeckDialog.hpp"
 #include "StreamDeckManager.hpp"
 #endif
@@ -103,6 +106,19 @@ void AddStreamDeckAction(OBSBasic *main)
 		StreamDeckDialog::Open(parent ? parent : main);
 	});
 }
+
+void AddMidiAction(OBSBasic *main)
+{
+	MidiManager *manager = new MidiManager(main);
+	qApp->installEventFilter(new MidiLearn(manager, main));
+
+	auto action = static_cast<QAction *>(
+		obs_frontend_add_tools_menu_qaction(QT_TO_UTF8(QTStr("Accessibility.Midi.MenuItem"))));
+	QObject::connect(action, &QAction::triggered, main, [main]() {
+		QWidget *parent = QApplication::activeWindow();
+		MidiDialog::Open(parent ? parent : main);
+	});
+}
 #endif
 } // namespace
 
@@ -154,6 +170,7 @@ void Initialize(OBSBasic *main)
 #ifdef _WIN32
 	qApp->installEventFilter(new ForeignWindowFocus(main));
 	AddStreamDeckAction(main);
+	AddMidiAction(main);
 #endif
 
 	AddModeActionToMainWindow(main);

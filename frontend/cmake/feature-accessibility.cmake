@@ -37,6 +37,7 @@ target_sources(
     accessibility/DocksDialog.hpp
     accessibility/LayoutMode.cpp
     accessibility/LayoutMode.hpp
+    accessibility/MidiWidgetProperties.hpp
     accessibility/NvdaController.cpp
     accessibility/NvdaController.hpp
     accessibility/OutputAnnouncements.cpp
@@ -61,6 +62,20 @@ if(OS_WINDOWS)
     PRIVATE
       accessibility/ForeignWindowFocus.cpp
       accessibility/ForeignWindowFocus.hpp
+      accessibility/MidiDevices.cpp
+      accessibility/MidiDevices.hpp
+      accessibility/MidiDialog.cpp
+      accessibility/MidiDialog.hpp
+      accessibility/MidiLearn.cpp
+      accessibility/MidiLearn.hpp
+      accessibility/MidiManager.cpp
+      accessibility/MidiManager.hpp
+      accessibility/MidiMapping.cpp
+      accessibility/MidiMapping.hpp
+      accessibility/MidiProtocol.cpp
+      accessibility/MidiProtocol.hpp
+      accessibility/MidiTargets.cpp
+      accessibility/MidiTargets.hpp
       accessibility/StreamDeckActions.cpp
       accessibility/StreamDeckActions.hpp
       accessibility/StreamDeckDialog.cpp
@@ -76,7 +91,7 @@ if(OS_WINDOWS)
       accessibility/StreamDeckProtocol.cpp
       accessibility/StreamDeckProtocol.hpp
   )
-  target_link_libraries(obs-studio PRIVATE hid setupapi)
+  target_link_libraries(obs-studio PRIVATE hid setupapi winmm)
 endif()
 
 # NVDA speaks announcements made while MetaOBS is in the background only

@@ -1,5 +1,6 @@
 #include "ControlsPanel.hpp"
 #include "AccessibleBridge.hpp"
+#include "MidiWidgetProperties.hpp"
 
 #include <OBSApp.hpp>
 #include <widgets/OBSBasic.hpp>
@@ -68,14 +69,16 @@ ControlsPanel::ControlsPanel(OBSBasic *main_, QWidget *parent)
 	layout->addLayout(outputsLayout);
 	layout->addLayout(transitionsLayout);
 
+	/* MIDI learn assigns a button's hotkey to a controller's button. */
 	streamButton = AddButton(outputsLayout, streamAction);
-	AddButton(outputsLayout, recordAction);
-	AddButton(outputsLayout, pauseAction);
-	AddButton(outputsLayout, replayBufferAction);
-	AddButton(outputsLayout, saveReplayAction);
-	AddButton(outputsLayout, virtualCamAction);
+	streamButton->setProperty(Midi::hotkeyProperty, "OBSBasic.StartStreaming");
+	AddButton(outputsLayout, recordAction)->setProperty(Midi::hotkeyProperty, "OBSBasic.StartRecording");
+	AddButton(outputsLayout, pauseAction)->setProperty(Midi::hotkeyProperty, "OBSBasic.PauseRecording");
+	AddButton(outputsLayout, replayBufferAction)->setProperty(Midi::hotkeyProperty, "OBSBasic.StartReplayBuffer");
+	AddButton(outputsLayout, saveReplayAction)->setProperty(Midi::hotkeyProperty, "OBSBasic.SaveReplayBuffer");
+	AddButton(outputsLayout, virtualCamAction)->setProperty(Midi::hotkeyProperty, "OBSBasic.StartVirtualCam");
 	AddButton(outputsLayout, virtualCamConfigAction);
-	AddButton(outputsLayout, studioModeAction);
+	AddButton(outputsLayout, studioModeAction)->setProperty(Midi::hotkeyProperty, "OBSBasic.EnablePreviewProgram");
 	outputsLayout->addStretch();
 
 	CreateTransitionControls(transitionsLayout);
@@ -137,6 +140,8 @@ void ControlsPanel::CreateTransitionControls(QHBoxLayout *layout)
 	durationLabel->setBuddy(duration);
 
 	QPushButton *transitionButton = AddButton(layout, transitionAction);
+	transitionButton->setProperty(Midi::hotkeyProperty, "OBSBasic.Transition");
+	duration->setProperty(Midi::targetProperty, "transitionDuration");
 
 	/* The T-bar moves in percent; the main window's slider has a finer
 	 * scale. */
@@ -147,6 +152,7 @@ void ControlsPanel::CreateTransitionControls(QHBoxLayout *layout)
 	tBar->setPageStep(10);
 	tBarLabel->setBuddy(tBar);
 	tBar->setAccessibleName(tBarLabel->text());
+	tBar->setProperty(Midi::targetProperty, "tbar");
 
 	/* AddButton() appended the Transition button; keep it after the
 	 * transition and its duration. */

@@ -26,6 +26,10 @@ target_sources(
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleFormat.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleLayout.cpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/AccessibleLayout.hpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/MidiMapping.cpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/MidiMapping.hpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/MidiProtocol.cpp"
+    "${CMAKE_SOURCE_DIR}/frontend/accessibility/MidiProtocol.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckImages.cpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckImages.hpp"
     "${CMAKE_SOURCE_DIR}/frontend/accessibility/StreamDeckMapping.cpp"
@@ -39,6 +43,7 @@ target_sources(
     test-format.cpp
     test-layout.cpp
     test-main.cpp
+    test-midi.cpp
     test-properties-view.cpp
     test-release.cpp
     test-streamdeck.cpp
@@ -59,7 +64,7 @@ set_target_properties_obs(obs-a11y-tests PROPERTIES FOLDER "Tests and Examples")
 
 # Each group name is passed to the executable, which runs the test cases whose
 # names start with it.
-foreach(test_group IN ITEMS Audit Format Layout PropertiesView Release StreamDeck)
+foreach(test_group IN ITEMS Audit Format Layout Midi PropertiesView Release StreamDeck)
   add_test(
     NAME obs-a11y-${test_group}
     COMMAND "${OBS_OUTPUT_DIR}/$<CONFIG>/${OBS_EXECUTABLE_DESTINATION}/obs-a11y-tests" ${test_group}
