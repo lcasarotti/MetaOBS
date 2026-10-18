@@ -521,6 +521,7 @@ void OBSPropertiesView::AddInt(obs_property_t *prop, QFormLayout *layout, QLabel
 
 	if (type == OBS_NUMBER_SLIDER) {
 		QSlider *slider = new SliderIgnoreScroll();
+		slider->setProperty("obsSettingName", name);
 		slider->setMinimum(minVal);
 		slider->setMaximum(maxVal);
 		slider->setPageStep(stepVal);
@@ -579,6 +580,7 @@ void OBSPropertiesView::AddFloat(obs_property_t *prop, QFormLayout *layout, QLab
 
 	if (type == OBS_NUMBER_SLIDER) {
 		DoubleSlider *slider = new DoubleSlider();
+		slider->setProperty("obsSettingName", name);
 		slider->setDoubleConstraints(minVal, maxVal, stepVal, val);
 		slider->setOrientation(Qt::Horizontal);
 		subLayout->addWidget(slider);

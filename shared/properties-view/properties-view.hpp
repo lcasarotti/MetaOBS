@@ -53,6 +53,8 @@ public:
 		  property(prop),
 		  widget(widget_)
 	{
+		/* Tells MetaOBS's MIDI learn which setting the widget edits. */
+		widget->setProperty("obsSettingName", obs_property_name(prop));
 	}
 
 	~WidgetInfo()

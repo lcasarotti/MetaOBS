@@ -6,8 +6,11 @@
 #include <accessibility/A11yAudit.hpp>
 #include <properties-view.hpp>
 
+#include <QAbstractSlider>
+#include <QAbstractSpinBox>
 #include <QAccessible>
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QGroupBox>
 #include <QPushButton>
@@ -186,6 +189,37 @@ A11Y_TEST(PropertiesViewColorButtonIncludesValue)
 	}
 
 	A11Y_CHECK_MESSAGE(found, "no button named after the \"Text color\" property");
+
+	delete view;
+}
+
+/* MIDI learn finds the setting a focused widget edits through this property,
+ * on spin boxes, sliders and check boxes alike. */
+A11Y_TEST(PropertiesViewWidgetsNameTheirSetting)
+{
+	OBSPropertiesView *view = CreateView();
+
+	auto settingsOf = [view](const QMetaObject &type) {
+		QStringList settings;
+		for (QWidget *widget : view->findChildren<QWidget *>()) {
+			if (widget->inherits(type.className())) {
+				settings << widget->property("obsSettingName").toString();
+			}
+		}
+		return settings;
+	};
+
+	QStringList checkBoxes = settingsOf(QCheckBox::staticMetaObject);
+	QStringList spinBoxes = settingsOf(QAbstractSpinBox::staticMetaObject);
+	QStringList sliders = settingsOf(QAbstractSlider::staticMetaObject);
+
+	A11Y_CHECK(checkBoxes.contains("bool"));
+	for (const char *setting : {"int", "int_slider", "float", "float_slider"}) {
+		A11Y_CHECK_MESSAGE(spinBoxes.contains(setting), std::string("no spin box for ") + setting);
+	}
+	for (const char *setting : {"int_slider", "float_slider"}) {
+		A11Y_CHECK_MESSAGE(sliders.contains(setting), std::string("no slider for ") + setting);
+	}
 
 	delete view;
 }
