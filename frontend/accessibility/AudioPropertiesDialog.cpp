@@ -1,6 +1,7 @@
 #include "AudioPropertiesDialog.hpp"
 #include "AccessibleFormat.hpp"
 #include "AudioActions.hpp"
+#include "MidiWidgetProperties.hpp"
 
 #include <OBSApp.hpp>
 #include <widgets/OBSBasic.hpp>
@@ -16,6 +17,7 @@
 #include <QVBoxLayout>
 
 #include <cmath>
+#include <initializer_list>
 #include <string>
 
 #include "moc_AudioPropertiesDialog.cpp"
@@ -41,6 +43,12 @@ float PercentToBalance(int percent)
 {
 	return static_cast<float>(percent) / 200.0f + 0.5f;
 }
+
+double VolumeToSpinValue(obs_source_t *source)
+{
+	float volumeDb = GetVolumeDb(source);
+	return volumeDb <= minimumVolumeDb ? volumeMinimumDb : volumeDb;
+}
 } // namespace
 
 void AudioPropertiesDialog::Open(OBSBasic *main, obs_source_t *source, QWidget *parent)
@@ -61,25 +69,24 @@ AudioPropertiesDialog::AudioPropertiesDialog(OBSBasic *main_, obs_source_t *sour
 	QFormLayout *form = new QFormLayout();
 	layout->addLayout(form);
 
-	QDoubleSpinBox *volume = new QDoubleSpinBox(this);
+	volume = new QDoubleSpinBox(this);
 	volume->setRange(volumeMinimumDb, volumeMaximumDb);
 	volume->setDecimals(1);
 	volume->setSingleStep(1.0);
 	volume->setSuffix(" dB");
 	volume->setSpecialValueText("-inf dB");
-	float volumeDb = GetVolumeDb(source);
-	volume->setValue(volumeDb <= minimumVolumeDb ? volumeMinimumDb : volumeDb);
+	volume->setValue(VolumeToSpinValue(source));
 	form->addRow(QTStr("Basic.AdvAudio.Volume"), volume);
 
-	QCheckBox *muted = new QCheckBox(QTStr("Mute"), this);
+	muted = new QCheckBox(QTStr("Mute"), this);
 	muted->setChecked(obs_source_muted(source));
 	form->addRow(muted);
 
-	QCheckBox *monitoring = new QCheckBox(QTStr("Basic.AdvAudio.Monitoring"), this);
+	monitoring = new QCheckBox(QTStr("Basic.AdvAudio.Monitoring"), this);
 	monitoring->setChecked(obs_source_get_monitoring_enabled(source));
 	form->addRow(monitoring);
 
-	QSpinBox *balance = new QSpinBox(this);
+	balance = new QSpinBox(this);
 	balance->setRange(-100, 100);
 	balance->setSingleStep(5);
 	balance->setValue(BalanceToPercent(obs_source_get_balance_value(source)));
@@ -109,6 +116,20 @@ AudioPropertiesDialog::AudioPropertiesDialog(OBSBasic *main_, obs_source_t *sour
 		trackBoxes.push_back(trackBox);
 	}
 	layout->addWidget(tracks);
+
+	/* Tells MIDI learn what each control sets. */
+	QString uuid = QT_UTF8(obs_source_get_uuid(source));
+	const std::pair<QWidget *, const char *> midiTargets[] = {
+		{volume, "volume"}, {muted, "mute"}, {monitoring, "monitoring"}, {balance, "balance"}};
+	for (const auto &[widget, kind] : midiTargets) {
+		widget->setProperty(Midi::targetProperty, kind);
+		widget->setProperty(Midi::sourceProperty, uuid);
+	}
+
+	signal_handler_t *handler = obs_source_get_signal_handler(source);
+	for (const char *signal : {"volume", "mute", "audio_balance", "audio_monitoring"}) {
+		sourceSignals.emplace_back(handler, signal, OnSourceSignal, this);
+	}
 
 	QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
 	layout->addWidget(buttons);
@@ -149,6 +170,47 @@ AudioPropertiesDialog::AudioPropertiesDialog(OBSBasic *main_, obs_source_t *sour
 				uint32_t bit = 1u << track;
 				SetMixersWithUndo(main, target, value ? (current | bit) : (current & ~bit));
 			}));
+	}
+}
+
+/* Source signals come from any thread, and the volume signal comes before
+ * the change. */
+void AudioPropertiesDialog::OnSourceSignal(void *data, calldata_t *)
+{
+	auto dialog = static_cast<AudioPropertiesDialog *>(data);
+	QMetaObject::invokeMethod(dialog, &AudioPropertiesDialog::Refresh, Qt::QueuedConnection);
+}
+
+/* Shows values changed elsewhere, without applying them again. */
+void AudioPropertiesDialog::Refresh()
+{
+	OBSSource source = OBSGetStrongRef(weakSource);
+	if (!source) {
+		return;
+	}
+
+	double volumeValue = VolumeToSpinValue(source);
+	if (std::abs(volume->value() - volumeValue) >= 0.05) {
+		QSignalBlocker blocker(volume);
+		volume->setValue(volumeValue);
+	}
+
+	bool isMuted = obs_source_muted(source);
+	if (muted->isChecked() != isMuted) {
+		QSignalBlocker blocker(muted);
+		muted->setChecked(isMuted);
+	}
+
+	bool isMonitored = obs_source_get_monitoring_enabled(source);
+	if (monitoring->isChecked() != isMonitored) {
+		QSignalBlocker blocker(monitoring);
+		monitoring->setChecked(isMonitored);
+	}
+
+	int balanceValue = BalanceToPercent(obs_source_get_balance_value(source));
+	if (balance->value() != balanceValue) {
+		QSignalBlocker blocker(balance);
+		balance->setValue(balanceValue);
 	}
 }
 

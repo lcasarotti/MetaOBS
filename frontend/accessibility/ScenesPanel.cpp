@@ -1,6 +1,7 @@
 #include "ScenesPanel.hpp"
 #include "AccessibleBridge.hpp"
 #include "AccessibleCommon.hpp"
+#include "MidiWidgetProperties.hpp"
 #include "TransitionDialogs.hpp"
 
 #include <OBSApp.hpp>
@@ -48,6 +49,7 @@ ScenesPanel::ScenesPanel(OBSBasic *main_, QWidget *parent)
 	listView->panel = this;
 	view = listView;
 	view->setAccessibleName(QTStr("Basic.Main.Scenes"));
+	view->setProperty(Midi::targetProperty, "scenes");
 	view->setSelectionMode(QAbstractItemView::SingleSelection);
 	view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
