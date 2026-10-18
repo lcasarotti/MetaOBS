@@ -37,6 +37,10 @@ struct HotkeyRef {
 	bool IsValid() const { return owner != HotkeyOwner::Invalid && !name.isEmpty(); }
 };
 
+/* How an owner is written in saved settings: "frontend", "source"... */
+QString HotkeyOwnerName(HotkeyOwner owner);
+HotkeyOwner HotkeyOwnerNamed(const QString &name);
+
 struct KeyAssignment {
 	HotkeyRef action;
 	/* What the key says: spoken on request and shown on its display. */

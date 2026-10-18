@@ -20,8 +20,9 @@ const OwnerName ownerNames[] = {
 	{HotkeyOwner::Frontend, "frontend"}, {HotkeyOwner::Source, "source"},   {HotkeyOwner::Output, "output"},
 	{HotkeyOwner::Encoder, "encoder"},   {HotkeyOwner::Service, "service"},
 };
+} // namespace
 
-QString NameOf(HotkeyOwner owner)
+QString HotkeyOwnerName(HotkeyOwner owner)
 {
 	for (const OwnerName &entry : ownerNames) {
 		if (entry.owner == owner) {
@@ -31,7 +32,7 @@ QString NameOf(HotkeyOwner owner)
 	return {};
 }
 
-HotkeyOwner OwnerNamed(const QString &name)
+HotkeyOwner HotkeyOwnerNamed(const QString &name)
 {
 	for (const OwnerName &entry : ownerNames) {
 		if (name == entry.name) {
@@ -40,7 +41,6 @@ HotkeyOwner OwnerNamed(const QString &name)
 	}
 	return HotkeyOwner::Invalid;
 }
-} // namespace
 
 QString MappingToJson(const Mapping &mapping)
 {
@@ -52,7 +52,7 @@ QString MappingToJson(const Mapping &mapping)
 
 		QJsonObject entry;
 		entry["key"] = key;
-		entry["owner"] = NameOf(assignment.action.owner);
+		entry["owner"] = HotkeyOwnerName(assignment.action.owner);
 		entry["context"] = assignment.action.context;
 		entry["contextName"] = assignment.action.contextName;
 		entry["name"] = assignment.action.name;
@@ -86,7 +86,7 @@ Mapping MappingFromJson(const QString &json)
 		}
 
 		KeyAssignment assignment;
-		assignment.action.owner = OwnerNamed(entry["owner"].toString());
+		assignment.action.owner = HotkeyOwnerNamed(entry["owner"].toString());
 		assignment.action.context = entry["context"].toString();
 		assignment.action.contextName = entry["contextName"].toString();
 		assignment.action.name = entry["name"].toString();
