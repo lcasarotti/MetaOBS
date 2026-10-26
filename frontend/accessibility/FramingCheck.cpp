@@ -77,18 +77,97 @@ QString LightText(FramingLight light)
 }
 
 /* What was found, for the log users send when the advice seems wrong. */
-void LogResult(const std::vector<FaceBox> &faces, double meanLuma)
+QString BoxText(const FaceBox &box)
+{
+	return QString("%1,%2 %3x%4")
+		.arg(box.left, 0, 'f', 2)
+		.arg(box.top, 0, 'f', 2)
+		.arg(box.width, 0, 'f', 2)
+		.arg(box.height, 0, 'f', 2);
+}
+
+void LogResult(const std::vector<FaceBox> &faces, const FaceBox &window, double meanLuma)
 {
 	QStringList boxes;
 	for (const FaceBox &face : faces) {
-		boxes << QString("%1,%2 %3x%4")
-				 .arg(face.left, 0, 'f', 2)
-				 .arg(face.top, 0, 'f', 2)
-				 .arg(face.width, 0, 'f', 2)
-				 .arg(face.height, 0, 'f', 2);
+		boxes << BoxText(face);
 	}
-	blog(LOG_INFO, "[Accessibility] Framing: brightness %.0f, %d face(s) %s", meanLuma, (int)faces.size(),
-	     QT_TO_UTF8(boxes.join("; ")));
+	blog(LOG_INFO, "[Accessibility] Framing: brightness %.0f, window %s, %d face(s) %s", meanLuma,
+	     QT_TO_UTF8(BoxText(window)), (int)faces.size(), QT_TO_UTF8(boxes.join("; ")));
+}
+
+/* Below this share of the picture, the scene shows only part of it. */
+constexpr double fullWindowShare = 0.95;
+
+Affine2D ToAffine(const matrix4 &transform)
+{
+	vec3 origin;
+	vec3 unitX;
+	vec3 unitY;
+	vec3_set(&origin, 0.0f, 0.0f, 0.0f);
+	vec3_set(&unitX, 1.0f, 0.0f, 0.0f);
+	vec3_set(&unitY, 0.0f, 1.0f, 0.0f);
+	vec3_transform(&origin, &origin, &transform);
+	vec3_transform(&unitX, &unitX, &transform);
+	vec3_transform(&unitY, &unitY, &transform);
+
+	Affine2D affine;
+	affine.xx = unitX.x - origin.x;
+	affine.xy = unitX.y - origin.y;
+	affine.yx = unitY.x - origin.x;
+	affine.yy = unitY.y - origin.y;
+	affine.x0 = origin.x;
+	affine.y0 = origin.y;
+	return affine;
+}
+
+double AlignmentShare(uint32_t alignment, uint32_t start, uint32_t end)
+{
+	if (alignment & start) {
+		return 0.0;
+	}
+	return (alignment & end) ? 1.0 : 0.5;
+}
+
+/* Items in a group are placed relative to the group. */
+ItemPlacement DescribePlacement(obs_sceneitem_t *item, obs_sceneitem_t *group)
+{
+	matrix4 draw;
+	matrix4 box;
+	obs_sceneitem_get_draw_transform(item, &draw);
+	obs_sceneitem_get_box_transform(item, &box);
+	if (group) {
+		matrix4 groupTransform;
+		obs_sceneitem_get_draw_transform(group, &groupTransform);
+		matrix4_mul(&draw, &draw, &groupTransform);
+		matrix4_mul(&box, &box, &groupTransform);
+	}
+
+	obs_sceneitem_crop crop = {};
+	obs_sceneitem_get_crop(item, &crop);
+
+	obs_video_info ovi = {};
+	obs_get_video_info(&ovi);
+
+	obs_source_t *source = obs_sceneitem_get_source(item);
+	uint32_t alignment = obs_sceneitem_get_bounds_alignment(item);
+
+	ItemPlacement placement;
+	placement.sourceWidth = obs_source_get_width(source);
+	placement.sourceHeight = obs_source_get_height(source);
+	placement.cropLeft = crop.left;
+	placement.cropTop = crop.top;
+	placement.cropRight = crop.right;
+	placement.cropBottom = crop.bottom;
+	placement.draw = ToAffine(draw);
+	placement.canvasWidth = ovi.base_width;
+	placement.canvasHeight = ovi.base_height;
+	placement.cropToBox = obs_sceneitem_get_bounds_type(item) != OBS_BOUNDS_NONE &&
+			      obs_sceneitem_get_bounds_crop(item);
+	placement.box = ToAffine(box);
+	placement.boxAlignX = AlignmentShare(alignment, OBS_ALIGN_LEFT, OBS_ALIGN_RIGHT);
+	placement.boxAlignY = AlignmentShare(alignment, OBS_ALIGN_TOP, OBS_ALIGN_BOTTOM);
+	return placement;
 }
 
 bool IsCamera(obs_source_t *source)
@@ -101,7 +180,7 @@ bool IsCamera(obs_source_t *source)
  * groups too. */
 bool FindCameraItem(obs_scene_t *, obs_sceneitem_t *item, void *param)
 {
-	auto camera = static_cast<obs_source_t **>(param);
+	auto camera = static_cast<obs_sceneitem_t **>(param);
 	if (!obs_sceneitem_visible(item)) {
 		return true;
 	}
@@ -111,17 +190,16 @@ bool FindCameraItem(obs_scene_t *, obs_sceneitem_t *item, void *param)
 		return *camera == nullptr;
 	}
 
-	obs_source_t *source = obs_sceneitem_get_source(item);
-	if (IsCamera(source)) {
-		*camera = source;
+	if (IsCamera(obs_sceneitem_get_source(item))) {
+		*camera = item;
 		return false;
 	}
 	return true;
 }
 
-obs_source_t *FindCamera(obs_scene_t *scene)
+obs_sceneitem_t *FindCamera(obs_scene_t *scene)
 {
-	obs_source_t *camera = nullptr;
+	obs_sceneitem_t *camera = nullptr;
 	obs_scene_enum_items(scene, FindCameraItem, &camera);
 	return camera;
 }
@@ -166,23 +244,24 @@ FramingCheck *FramingCheck::Get()
 	return instance;
 }
 
-void FramingCheck::Check(obs_source_t *source)
+void FramingCheck::Check(obs_scene_t *scene, obs_sceneitem_t *item)
 {
-	if (!source) {
+	if (!scene || !item) {
 		AnnounceRequested(QTStr("Accessibility.Framing.NoCamera"));
 		return;
 	}
 
 	/* While guiding, the latest advice is already known. */
-	if (mode == Mode::Guidance && OBSGetStrongRef(lastSource) == source && announced) {
-		AnnounceRequested(Describe(*announced));
+	if (mode == Mode::Guidance && IsTarget(item) && announced) {
+		Placement placement = CurrentPlacement();
+		AnnounceRequested(Describe(*announced, &placement));
 		return;
 	}
 
-	Start(source, Mode::Check);
+	Start(scene, item, Mode::Check);
 }
 
-void FramingCheck::ToggleGuidance(obs_source_t *source)
+void FramingCheck::ToggleGuidance(obs_scene_t *scene, obs_sceneitem_t *item)
 {
 	if (mode == Mode::Guidance) {
 		Stop();
@@ -190,22 +269,25 @@ void FramingCheck::ToggleGuidance(obs_source_t *source)
 		return;
 	}
 
-	if (!source) {
+	if (!scene || !item) {
 		AnnounceRequested(QTStr("Accessibility.Framing.NoCamera"));
 		return;
 	}
 
 	AnnounceRequested(QTStr("Accessibility.Framing.GuidanceOn"));
-	Start(source, Mode::Guidance);
+	Start(scene, item, Mode::Guidance);
 }
 
-void FramingCheck::Start(obs_source_t *source, Mode newMode)
+void FramingCheck::Start(obs_scene_t *scene, obs_sceneitem_t *item, Mode newMode)
 {
 	Stop();
 
 	mode = newMode;
-	lastSource = OBSGetWeakRef(source);
+	target.scene = OBSGetWeakRef(obs_scene_get_source(scene));
+	target.parent = OBSGetWeakRef(obs_scene_get_source(obs_sceneitem_get_scene(item)));
+	target.itemId = obs_sceneitem_get_id(item);
 
+	obs_source_t *source = obs_sceneitem_get_source(item);
 	bool wasShowing = obs_source_showing(source);
 	HoldShowing(source);
 
@@ -224,6 +306,41 @@ void FramingCheck::Start(obs_source_t *source, Mode newMode)
 			}
 		});
 	}
+}
+
+bool FramingCheck::IsTarget(obs_sceneitem_t *item) const
+{
+	OBSSourceAutoRelease parent = OBSGetStrongRef(target.parent);
+	return parent && obs_scene_get_source(obs_sceneitem_get_scene(item)) == parent.Get() &&
+	       obs_sceneitem_get_id(item) == target.itemId;
+}
+
+FramingCheck::Placement FramingCheck::CurrentPlacement() const
+{
+	Placement placement;
+
+	OBSSourceAutoRelease sceneSource = OBSGetStrongRef(target.scene);
+	OBSSourceAutoRelease parentSource = OBSGetStrongRef(target.parent);
+	obs_scene_t *scene = obs_scene_from_source(sceneSource);
+	obs_scene_t *parent = obs_group_or_scene_from_source(parentSource);
+	obs_sceneitem_t *item = parent ? obs_scene_find_sceneitem_by_id(parent, target.itemId) : nullptr;
+	if (!scene || !item) {
+		return placement;
+	}
+
+	obs_sceneitem_t *group = obs_sceneitem_get_group(scene, item);
+	placement.hidden = !obs_sceneitem_visible(item) || (group && !obs_sceneitem_visible(group));
+
+	ItemPlacement itemPlacement = DescribePlacement(item, group);
+	FaceBox window = VisibleWindow(itemPlacement);
+	if (window.width <= 0.0 || window.height <= 0.0) {
+		placement.offCanvas = true;
+		return placement;
+	}
+
+	placement.window = window;
+	placement.partial = window.width * window.height < fullWindowShare;
+	return placement;
 }
 
 void FramingCheck::Stop()
@@ -406,12 +523,13 @@ void FramingCheck::OnResult(uint64_t id, bool pictureRead, bool available, const
 		return;
 	}
 
-	FramingAdvice advice = AnalyzeFraming(faces, meanLuma, false);
+	Placement placement = CurrentPlacement();
+	FramingAdvice advice = AnalyzeFraming(faces, placement.window, meanLuma, false);
 
 	if (mode == Mode::Check) {
-		LogResult(faces, meanLuma);
+		LogResult(faces, placement.window, meanLuma);
 		Stop();
-		AnnounceRequested(Describe(advice));
+		AnnounceRequested(Describe(advice, &placement));
 		return;
 	}
 
@@ -427,10 +545,12 @@ void FramingCheck::OnResult(uint64_t id, bool pictureRead, bool available, const
 	}
 
 	if (candidateCount >= stableResults && (!announced || *announced != advice)) {
+		/* What the scene does to the picture is said once. */
+		bool first = !announced;
 		announced = advice;
-		LogResult(faces, meanLuma);
+		LogResult(faces, placement.window, meanLuma);
 		if (Announcer *announcer = Announcer::Get()) {
-			announcer->AnnounceAtOnce(Describe(advice));
+			announcer->AnnounceAtOnce(Describe(advice, first ? &placement : nullptr));
 		}
 	}
 }
@@ -446,7 +566,7 @@ void FramingCheck::OnGuidanceTick()
 	RequestPicture();
 }
 
-QString FramingCheck::Describe(const FramingAdvice &advice) const
+QString FramingCheck::Describe(const FramingAdvice &advice, const Placement *placement) const
 {
 	QStringList sentences;
 
@@ -455,6 +575,12 @@ QString FramingCheck::Describe(const FramingAdvice &advice) const
 	} else {
 		if (advice.faceCount > 1) {
 			sentences << QTStr("Accessibility.Framing.ManyFaces").arg(advice.faceCount);
+		}
+
+		if (advice.visibility == FramingVisibility::Outside) {
+			sentences << QTStr("Accessibility.Framing.Outside");
+		} else if (advice.visibility == FramingVisibility::PartlyOutside) {
+			sentences << QTStr("Accessibility.Framing.PartlyOutside");
 		}
 
 		if (advice.IsCentered()) {
@@ -482,21 +608,40 @@ QString FramingCheck::Describe(const FramingAdvice &advice) const
 		sentences << light;
 	}
 
+	if (placement) {
+		if (placement->offCanvas) {
+			sentences << QTStr("Accessibility.Framing.OffCanvas");
+		} else if (placement->partial) {
+			sentences << QTStr("Accessibility.Framing.PartOfPicture");
+		}
+		if (placement->hidden) {
+			sentences << QTStr("Accessibility.Framing.Hidden");
+		}
+	}
+
 	return sentences.join(". ") + ".";
 }
 
-/* The hotkeys work on the source checked last, or else on the first camera
- * of the scene on air. */
-OBSSource FramingCheck::HotkeySource() const
+/* The hotkeys work on the item checked last, or else on the first camera of
+ * the scene on air. */
+void FramingCheck::FindHotkeyTarget(OBSScene &scene, OBSSceneItem &item) const
 {
-	OBSSourceAutoRelease last = OBSGetStrongRef(lastSource);
-	if (last && !obs_source_removed(last)) {
-		return last.Get();
+	OBSSourceAutoRelease sceneSource = OBSGetStrongRef(target.scene);
+	OBSSourceAutoRelease parentSource = OBSGetStrongRef(target.parent);
+	obs_scene_t *parent = obs_group_or_scene_from_source(parentSource);
+	if (sceneSource && parent) {
+		if (obs_sceneitem_t *last = obs_scene_find_sceneitem_by_id(parent, target.itemId)) {
+			scene = obs_scene_from_source(sceneSource);
+			item = last;
+			return;
+		}
 	}
 
 	OBSSourceAutoRelease program = obs_frontend_get_current_scene();
-	obs_scene_t *scene = obs_scene_from_source(program);
-	return scene ? FindCamera(scene) : nullptr;
+	if (obs_scene_t *programScene = obs_scene_from_source(program)) {
+		scene = programScene;
+		item = FindCamera(programScene);
+	}
 }
 
 void FramingCheck::RegisterHotkeys()
@@ -545,7 +690,7 @@ void FramingCheck::OnFrontendEvent(enum obs_frontend_event event, void *data)
 		break;
 	case OBS_FRONTEND_EVENT_SCENE_COLLECTION_CLEANUP:
 		check->Stop();
-		check->lastSource = nullptr;
+		check->target = {};
 		break;
 	case OBS_FRONTEND_EVENT_EXIT:
 		check->Stop();
@@ -564,10 +709,14 @@ void FramingCheck::OnHotkey(void *data, obs_hotkey_id id, obs_hotkey_t *, bool p
 		return;
 	}
 
+	OBSScene scene;
+	OBSSceneItem item;
+	check->FindHotkeyTarget(scene, item);
+
 	if (id == check->checkHotkey) {
-		check->Check(check->HotkeySource());
+		check->Check(scene, item);
 	} else if (id == check->guidanceHotkey) {
-		check->ToggleGuidance(check->HotkeySource());
+		check->ToggleGuidance(scene, item);
 	}
 }
 

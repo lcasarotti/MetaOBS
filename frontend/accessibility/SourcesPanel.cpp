@@ -227,12 +227,12 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 #ifdef _WIN32
 	connect(checkFramingAction, &QAction::triggered, this, [this]() {
 		if (FramingCheck *check = FramingCheck::Get()) {
-			check->Check(obs_sceneitem_get_source(GetSelectedItem()));
+			check->Check(main->GetCurrentScene(), GetSelectedItem());
 		}
 	});
 	connect(framingGuidanceAction, &QAction::triggered, this, [this]() {
 		if (FramingCheck *check = FramingCheck::Get()) {
-			check->ToggleGuidance(obs_sceneitem_get_source(GetSelectedItem()));
+			check->ToggleGuidance(main->GetCurrentScene(), GetSelectedItem());
 		}
 	});
 #endif

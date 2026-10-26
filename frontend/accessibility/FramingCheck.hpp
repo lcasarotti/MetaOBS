@@ -22,9 +22,9 @@ namespace OBS::Accessibility {
 /* Tells whether the face of the person in front of a camera is centered,
  * how far from the camera they are and how bright the picture is. It speaks
  * once on request, or keeps guiding the person for a while, speaking each
- * time the framing changes, until they stop it. It examines a source's own
- * picture, with its filters but not its position in the scene. Nothing runs
- * until the user asks. Windows only. */
+ * time the framing changes, until they stop it. The advice is about the part
+ * of the camera's picture the scene shows, after the item's crop and without
+ * what is off the canvas. Nothing runs until the user asks. Windows only. */
 class FramingCheck : public QObject {
 	Q_OBJECT
 
@@ -34,8 +34,10 @@ public:
 
 	static FramingCheck *Get();
 
-	void Check(obs_source_t *source);
-	void ToggleGuidance(obs_source_t *source);
+	/* scene is the scene shown in the Sources panel, which holds the item
+	 * or the group holding it. */
+	void Check(obs_scene_t *scene, obs_sceneitem_t *item);
+	void ToggleGuidance(obs_scene_t *scene, obs_sceneitem_t *item);
 
 private:
 	enum class Mode {
@@ -55,11 +57,29 @@ private:
 		Read,
 	};
 
+	/* The scene item checked, found again each time, since it may be
+	 * moved, cropped or removed meanwhile. */
+	struct Target {
+		OBSWeakSource scene;
+		OBSWeakSource parent;
+		int64_t itemId = 0;
+	};
+
+	/* Where the picture ends up in the scene. */
+	struct Placement {
+		FaceBox window = wholePicture;
+		bool hidden = false;
+		bool offCanvas = false;
+		bool partial = false;
+	};
+
 	static void OnTick(void *data, float seconds);
 	static void OnFrontendEvent(enum obs_frontend_event event, void *data);
 	static void OnHotkey(void *data, obs_hotkey_id id, obs_hotkey_t *hotkey, bool pressed);
 
-	void Start(obs_source_t *source, Mode newMode);
+	void Start(obs_scene_t *scene, obs_sceneitem_t *item, Mode newMode);
+	bool IsTarget(obs_sceneitem_t *item) const;
+	Placement CurrentPlacement() const;
 	void Stop();
 	void RequestPicture();
 	void GrabStep();
@@ -68,11 +88,13 @@ private:
 	void OnResult(uint64_t id, bool pictureRead, bool available, const std::vector<FaceBox> &faces,
 		      double meanLuma);
 	void OnGuidanceTick();
-	QString Describe(const FramingAdvice &advice) const;
+	/* placement adds what the scene does to the picture, for the first
+	 * advice. */
+	QString Describe(const FramingAdvice &advice, const Placement *placement = nullptr) const;
 
 	void HoldShowing(obs_source_t *source);
 	void ReleaseShowing();
-	OBSSource HotkeySource() const;
+	void FindHotkeyTarget(OBSScene &scene, OBSSceneItem &item) const;
 
 	void RegisterHotkeys();
 	void LoadBindings();
@@ -82,7 +104,7 @@ private:
 	std::unique_ptr<FaceDetection> detection;
 
 	Mode mode = Mode::Idle;
-	OBSWeakSource lastSource;
+	Target target;
 	OBSSource shownSource;
 	bool pictureRequested = false;
 	/* Tells the picture asked for last from older ones. */
