@@ -3,7 +3,7 @@ include_guard(DIRECTORY)
 # MetaOBS has its own version, separate from the OBS version it is based on.
 # Each release is tagged metaobs-v<version> on GitHub, and the built-in updater
 # installs the newest one. build-aux/Publish-MetaOBS.ps1 reads both values.
-set(METAOBS_VERSION "1.1.1")
+set(METAOBS_VERSION "1.1.2")
 set(METAOBS_REPOSITORY "lcasarotti/MetaOBS")
 
 target_compile_definitions(
