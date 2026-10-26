@@ -11,6 +11,7 @@
 #include "StatusMonitor.hpp"
 #include "StatusReadouts.hpp"
 #ifdef _WIN32
+#include "FramingCheck.hpp"
 #include "MidiDialog.hpp"
 #include "MidiLearn.hpp"
 #include "MidiManager.hpp"
@@ -171,6 +172,7 @@ void Initialize(OBSBasic *main)
 	qApp->installEventFilter(new ForeignWindowFocus(main));
 	AddStreamDeckAction(main);
 	AddMidiAction(main);
+	new FramingCheck(main);
 #endif
 
 	AddModeActionToMainWindow(main);

@@ -60,8 +60,14 @@ if(OS_WINDOWS)
   target_sources(
     obs-studio
     PRIVATE
+      accessibility/FaceDetection.cpp
+      accessibility/FaceDetection.hpp
       accessibility/ForeignWindowFocus.cpp
       accessibility/ForeignWindowFocus.hpp
+      accessibility/FramingAnalysis.cpp
+      accessibility/FramingAnalysis.hpp
+      accessibility/FramingCheck.cpp
+      accessibility/FramingCheck.hpp
       accessibility/MidiDevices.cpp
       accessibility/MidiDevices.hpp
       accessibility/MidiDialog.cpp
@@ -91,7 +97,13 @@ if(OS_WINDOWS)
       accessibility/StreamDeckProtocol.cpp
       accessibility/StreamDeckProtocol.hpp
   )
-  target_link_libraries(obs-studio PRIVATE hid setupapi winmm)
+  target_link_libraries(obs-studio PRIVATE hid setupapi windowsapp winmm)
+
+  # FIXME: WinRT library headers trigger deprecation warning until OBS Studio uses C++20 or newer
+  set_source_files_properties(
+    accessibility/FaceDetection.cpp
+    PROPERTIES COMPILE_DEFINITIONS _SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
+  )
 endif()
 
 # NVDA speaks announcements made while MetaOBS is in the background only

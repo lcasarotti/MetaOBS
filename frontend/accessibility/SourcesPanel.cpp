@@ -1,6 +1,9 @@
 #include "SourcesPanel.hpp"
 #include "AccessibleBridge.hpp"
 #include "AccessibleCommon.hpp"
+#ifdef _WIN32
+#include "FramingCheck.hpp"
+#endif
 #include "LayoutMode.hpp"
 #include "TransitionDialogs.hpp"
 
@@ -140,6 +143,13 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 					     {QKeySequence(Qt::CTRL | Qt::Key_M)});
 	describeLayoutAction = CreatePanelAction(view, QTStr("Accessibility.Sources.DescribeLayout"));
 
+#ifdef _WIN32
+	checkFramingAction = CreatePanelAction(view, QTStr("Accessibility.Framing.Check"),
+					       {QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F)});
+	framingGuidanceAction = CreatePanelAction(view, QTStr("Accessibility.Framing.Guidance"),
+						  {QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F)});
+#endif
+
 	layoutMode = new LayoutMode(main, view, [this]() { return GetSelectedItem(); });
 
 	connect(addAction, &QAction::triggered, this,
@@ -214,6 +224,18 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 	});
 	connect(describeLayoutAction, &QAction::triggered, this,
 		[this]() { layoutMode->DescribeItem(GetSelectedItem()); });
+#ifdef _WIN32
+	connect(checkFramingAction, &QAction::triggered, this, [this]() {
+		if (FramingCheck *check = FramingCheck::Get()) {
+			check->Check(obs_sceneitem_get_source(GetSelectedItem()));
+		}
+	});
+	connect(framingGuidanceAction, &QAction::triggered, this, [this]() {
+		if (FramingCheck *check = FramingCheck::Get()) {
+			check->ToggleGuidance(obs_sceneitem_get_source(GetSelectedItem()));
+		}
+	});
+#endif
 
 	CreateMenu();
 
@@ -255,6 +277,10 @@ void SourcesPanel::CreateMenu()
 	menu->addAction(interactAction);
 	menu->addAction(layoutModeAction);
 	menu->addAction(describeLayoutAction);
+#ifdef _WIN32
+	menu->addAction(checkFramingAction);
+	menu->addAction(framingGuidanceAction);
+#endif
 	menu->addSeparator();
 	menu->addAction(visibilityAction);
 	menu->addAction(lockAction);

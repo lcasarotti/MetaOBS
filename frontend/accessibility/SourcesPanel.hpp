@@ -113,6 +113,10 @@ private:
 	QAction *screenshotAction;
 	QAction *layoutModeAction;
 	QAction *describeLayoutAction;
+#ifdef _WIN32
+	QAction *checkFramingAction;
+	QAction *framingGuidanceAction;
+#endif
 	LayoutMode *layoutMode;
 
 	QMenu *orderMenu;
