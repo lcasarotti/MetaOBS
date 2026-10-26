@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manuale di MetaOBS</title>
+<style>
+:root {
+	--bg: #ffffff;
+	--fg: #1b1b1b;
+	--muted: #555555;
+	--accent: #0b5cad;
+	--border: #c8c8c8;
+	--code-bg: #f1f1f1;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #1a1a1a;
+		--fg: #e8e8e8;
+		--muted: #b0b0b0;
+		--accent: #7cb8ff;
+		--border: #4a4a4a;
+		--code-bg: #2a2a2a;
+	}
+}
+body {
+	background: var(--bg);
+	color: var(--fg);
+	font-family: "Segoe UI", system-ui, sans-serif;
+	font-size: 1.05rem;
+	line-height: 1.6;
+	max-width: 52rem;
+	margin: 0 auto;
+	padding: 1rem;
+}
+a { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; }
+h2 { border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 2.5rem; }
+kbd {
+	background: var(--code-bg);
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	padding: 0 0.3em;
+	font-family: inherit;
+}
+code { background: var(--code-bg); padding: 0 0.3em; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); }
+.note { border-left: 4px solid var(--accent); padding: 0.2rem 0.8rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+<header>
+<h1>Manuale di MetaOBS</h1>
+<p>Questo manuale descrive MetaOBS 1.1.2 per Windows. In inglese: <a href="en-US.html">MetaOBS manual</a>.</p>
+</header>
+
+<nav aria-labelledby="indice">
+<h2 id="indice">Indice</h2>
+<ol>
+<li><a href="#introduzione">Che cos'è MetaOBS</a></li>
+<li><a href="#installazione">Installazione e aggiornamenti</a></li>
+<li><a href="#primi-passi">Primi passi</a></li>
+<li><a href="#finestra">La finestra della modalità accessibile</a></li>
+<li><a href="#scene">Pannello Scene</a></li>
+<li><a href="#fonti">Pannello Fonti</a></li>
+<li><a href="#layout">Modalità layout</a></li>
+<li><a href="#inquadratura">Controllo dell'inquadratura della webcam</a></li>
+<li><a href="#audio">Pannello Audio</a></li>
+<li><a href="#controlli">Pannello Controlli e transizioni</a></li>
+<li><a href="#stato">Pannello Stato e avvisi</a></li>
+<li><a href="#annunci">Annunci e impostazioni di accessibilità</a></li>
+<li><a href="#scorciatoie-globali">Scorciatoie globali</a></li>
+<li><a href="#palette">Palette comandi</a></li>
+<li><a href="#finestre">Finestre di dialogo, filtri e dock</a></li>
+<li><a href="#streamdeck">Stream Deck</a></li>
+<li><a href="#midi">Controller MIDI</a></li>
+<li><a href="#tasti">Riepilogo dei tasti</a></li>
+<li><a href="#problemi">Risoluzione dei problemi</a></li>
+</ol>
+</nav>
+
+<main>
+<section aria-labelledby="introduzione">
+<h2 id="introduzione">1. Che cos'è MetaOBS</h2>
+<p>MetaOBS è una versione di OBS Studio pensata per chi usa uno screen reader. Fa tutto quello che fa OBS Studio (dirette, registrazioni, scene, fonti, filtri, plugin), ma aggiunge una <strong>modalità accessibile</strong>: una finestra principale costruita con elenchi, pulsanti e menu standard, completamente utilizzabile da tastiera e verificata con NVDA.</p>
+<p>In più MetaOBS:</p>
+<ul>
+<li>annuncia tramite lo screen reader l'avvio e l'arresto di dirette e registrazioni, i cambi di scena, gli errori e gli avvisi sulla qualità della trasmissione, anche quando la sua finestra non è in primo piano;</li>
+<li>permette di spostare, ridimensionare e ritagliare le fonti dalla tastiera, con una descrizione a voce della loro posizione;</li>
+<li>controlla a voce se il tuo volto è inquadrato bene dalla webcam;</li>
+<li>supporta direttamente Stream Deck e controller MIDI, senza programmi esterni inaccessibili.</li>
+</ul>
+<p>Questo manuale descrive le funzioni proprie di MetaOBS. Per i concetti generali di OBS (scene, fonti, codificatori, impostazioni di uscita) vale la documentazione di OBS Studio su <a href="https://obsproject.com/kb">obsproject.com/kb</a>.</p>
+</section>
+
+<section aria-labelledby="installazione">
+<h2 id="installazione">2. Installazione e aggiornamenti</h2>
+<h3>Installazione</h3>
+<p>Scarica il programma di installazione dalla pagina delle versioni di MetaOBS su GitHub (<a href="https://github.com/lcasarotti/MetaOBS/releases">github.com/lcasarotti/MetaOBS/releases</a>) e avvialo. All'inizio ti chiede se installare MetaOBS solo per te (non servono permessi di amministratore) o per tutti gli utenti del computer. Se serve, installa anche le librerie Microsoft Visual C++.</p>
+<p>MetaOBS si installa in una cartella propria e può convivere con OBS Studio. Attenzione però: <strong>MetaOBS e OBS Studio condividono la stessa configurazione</strong> (scene, profili, impostazioni, plugin installati per l'utente), che si trova in <code>%APPDATA%\obs-studio</code>. Le modifiche fatte in uno dei due si ritrovano nell'altro. Non avviarli insieme.</p>
+<p>Al posto dell'installazione puoi usare l'archivio zip: estrailo in una cartella e avvia <code>bin\64bit\obs64.exe</code>.</p>
+<h3>Aggiornamenti</h3>
+<p>MetaOBS cerca gli aggiornamenti dal menu <strong>Aiuto, Controlla gli aggiornamenti</strong> (e all'avvio, se l'opzione è attiva nelle impostazioni generali). Quando trova una nuova versione la scarica, ne verifica l'integrità, si chiude, installa l'aggiornamento e si riavvia. Se stai trasmettendo o registrando, prima di chiudersi chiede conferma. All'avvio successivo ti dice a quale versione è stato aggiornato, oppure perché l'aggiornamento non è riuscito.</p>
+</section>
+
+<section aria-labelledby="primi-passi">
+<h2 id="primi-passi">3. Primi passi</h2>
+<p>MetaOBS si apre direttamente in modalità accessibile. La finestra si chiama «MetaOBS» seguito dal numero di versione e da «Modalità accessibile».</p>
+<p>Al primo avvio OBS propone la <strong>Configurazione automatica guidata</strong>, che sceglie risoluzione, frequenza dei fotogrammi e qualità della diretta o della registrazione. La puoi riaprire in qualsiasi momento dal menu Strumenti.</p>
+<p>Un percorso tipico per la prima registrazione:</p>
+<ol>
+<li>Nel pannello Scene c'è già una scena. Premi <kbd>Ctrl+2</kbd> per andare al pannello Fonti.</li>
+<li>Apri il menu Fonte (<kbd>Alt+F</kbd>) e scegli <strong>Aggiungi fonte...</strong>. Scegli per esempio «Dispositivo di acquisizione video» per la webcam, o «Cattura schermo».</li>
+<li>Dai un nome alla fonte e conferma: si apre la finestra delle proprietà, dove scegli il dispositivo.</li>
+<li>Premi <kbd>Ctrl+3</kbd> per controllare nel pannello Audio che microfono e audio del desktop siano attivi.</li>
+<li>Premi <kbd>Ctrl+4</kbd>: il focus va sul pannello Controlli. Premi <strong>Avvia la registrazione</strong>. MetaOBS annuncia «Registrazione avviata».</li>
+</ol>
+<p>Le registrazioni vengono salvate nella cartella indicata in Impostazioni, Uscita (di solito la cartella Video).</p>
+<h3>Tornare all'interfaccia standard</h3>
+<p><kbd>Ctrl+Maiusc+A</kbd>, oppure il menu Visualizza, passa dalla modalità accessibile all'interfaccia standard di OBS e viceversa. L'interfaccia standard serve soprattutto a chi vede lo schermo. Per non partire in modalità accessibile, disattiva «Avvia MetaOBS in modalità accessibile» in Impostazioni, Accessibilità.</p>
+<p>Se MetaOBS è ridotto a icona nell'area di notifica, il menu della sua icona contiene la voce <strong>Modalità accessibile</strong>.</p>
+</section>
+
+<section aria-labelledby="finestra">
+<h2 id="finestra">4. La finestra della modalità accessibile</h2>
+<p>La finestra è divisa in cinque pannelli. Ci si sposta con <kbd>F6</kbd> (pannello successivo) e <kbd>Maiusc+F6</kbd> (precedente), oppure si salta direttamente a un pannello:</p>
+<table>
+<caption>Pannelli della finestra</caption>
+<thead><tr><th scope="col">Tasto</th><th scope="col">Pannello</th><th scope="col">Contenuto</th></tr></thead>
+<tbody>
+<tr><td><kbd>Ctrl+1</kbd></td><td>Scene</td><td>Elenco delle scene della collezione corrente</td></tr>
+<tr><td><kbd>Ctrl+2</kbd></td><td>Fonti</td><td>Fonti della scena corrente, con i gruppi</td></tr>
+<tr><td><kbd>Ctrl+3</kbd></td><td>Mixer audio</td><td>Una riga per ogni fonte audio, con volume e stato</td></tr>
+<tr><td><kbd>Ctrl+4</kbd></td><td>Controlli</td><td>Pulsanti di diretta, registrazione, buffer di replay, fotocamera virtuale, modalità studio e controlli delle transizioni</td></tr>
+<tr><td><kbd>Ctrl+5</kbd></td><td>Stato</td><td>Stato di uscite, prestazioni e spazio su disco</td></tr>
+</tbody>
+</table>
+<p>Anche <kbd>Tab</kbd> percorre i pannelli nello stesso ordine.</p>
+<p>Ogni pannello ha un proprio menu nella barra dei menu (Scena, Fonte, Audio, Controlli, Stato), con le stesse voci del menu contestuale. Il menu contestuale si apre con il tasto Applicazioni o <kbd>Maiusc+F10</kbd>. Accanto alle voci, il menu mostra le scorciatoie.</p>
+<p>Gli altri menu sono quelli di OBS: Archivio (con Impostazioni), Modifica (Annulla e Ripeti), Visualizza, Profilo, Collezione scene, Strumenti e Aiuto. Il menu Aiuto contiene questo manuale, che si apre nel browser anche con <kbd>F1</kbd> da qualsiasi finestra di MetaOBS. Il menu Visualizza contiene inoltre la palette comandi, i dock dei plugin, i proiettori (anteprima, programma, multiview) e lo screenshot dell'uscita.</p>
+</section>
+
+<section aria-labelledby="scene">
+<h2 id="scene">5. Pannello Scene</h2>
+<p>Ogni scena dell'elenco dice se è «in onda» (è quella trasmessa o registrata) o, in modalità studio, «in anteprima».</p>
+<ul>
+<li><kbd>Invio</kbd> passa alla scena selezionata. In modalità studio la mette in anteprima.</li>
+<li><kbd>Ctrl+Invio</kbd> manda la scena selezionata direttamente in programma, con la transizione corrente, anche in modalità studio.</li>
+<li><kbd>F2</kbd> rinomina, <kbd>Canc</kbd> elimina, <kbd>Ctrl+D</kbd> duplica.</li>
+<li><kbd>Alt+Freccia su</kbd> e <kbd>Alt+Freccia giù</kbd> spostano la scena nell'elenco; <kbd>Alt+Home</kbd> e <kbd>Alt+Fine</kbd> la portano in cima o in fondo.</li>
+</ul>
+<p>Il menu Scena contiene anche: Aggiungi scena, Filtri della scena, Copia e Incolla filtri, Screenshot della scena e <strong>Sovrascrivi transizione...</strong>, che sceglie una transizione specifica per quando si passa a quella scena.</p>
+<p>Quando la scena in onda cambia, MetaOBS annuncia «In onda:» seguito dal nome. Con una transizione annuncia «Transizione da A a B».</p>
+</section>
+
+<section aria-labelledby="fonti">
+<h2 id="fonti">6. Pannello Fonti</h2>
+<p>Il pannello si chiama «Fonti in» seguito dal nome della scena. In modalità studio mostra la scena in anteprima. È un albero: i gruppi si aprono e chiudono con le frecce destra e sinistra. Ogni fonte dice se è nascosta o bloccata. Con <kbd>Ctrl</kbd> o <kbd>Maiusc</kbd> si selezionano più fonti.</p>
+<table>
+<caption>Tasti del pannello Fonti</caption>
+<thead><tr><th scope="col">Tasto</th><th scope="col">Azione</th></tr></thead>
+<tbody>
+<tr><td><kbd>Invio</kbd></td><td>Apre le proprietà della fonte</td></tr>
+<tr><td><kbd>Spazio</kbd></td><td>Mostra o nasconde la fonte nella scena</td></tr>
+<tr><td><kbd>Ctrl+L</kbd></td><td>Blocca o sblocca la fonte</td></tr>
+<tr><td><kbd>Ctrl+F</kbd></td><td>Filtri della fonte</td></tr>
+<tr><td><kbd>Ctrl+T</kbd></td><td>Modifica trasformazione (posizione, dimensioni, rotazione, ritaglio in campi numerici)</td></tr>
+<tr><td><kbd>Ctrl+I</kbd></td><td>Interagisci (per esempio con una fonte browser)</td></tr>
+<tr><td><kbd>F2</kbd></td><td>Rinomina</td></tr>
+<tr><td><kbd>Canc</kbd></td><td>Rimuove la fonte dalla scena</td></tr>
+<tr><td><kbd>Alt+Freccia su</kbd> / <kbd>Alt+Freccia giù</kbd></td><td>Sposta la fonte sopra o sotto le altre (l'ordine decide cosa copre cosa)</td></tr>
+<tr><td><kbd>Alt+Home</kbd> / <kbd>Alt+Fine</kbd></td><td>Sposta in cima o in fondo</td></tr>
+<tr><td><kbd>Ctrl+G</kbd> / <kbd>Ctrl+Maiusc+G</kbd></td><td>Raggruppa le fonti selezionate / separa il gruppo</td></tr>
+<tr><td><kbd>Ctrl+M</kbd></td><td>Modalità layout (vedi sezione 7)</td></tr>
+<tr><td><kbd>Ctrl+Maiusc+F</kbd></td><td>Controlla l'inquadratura della webcam (vedi sezione 8)</td></tr>
+<tr><td><kbd>Ctrl+Alt+F</kbd></td><td>Guida all'inquadratura</td></tr>
+</tbody>
+</table>
+<p>Il menu Fonte contiene anche: Aggiungi fonte, Proprietà, Descrivi posizione, il sottomenu Trasforma (adatta allo schermo, centra, capovolgi e così via), Copia e Incolla, Copia e Incolla filtri, Visualizza transizione e Transizione quando invisibile, Nascondi nel mixer, Ridimensiona destinazione (dimensione fonte), filtro di scala, metodo di fusione, proiettori della fonte e Screenshot della fonte.</p>
+</section>
+
+<section aria-labelledby="layout">
+<h2 id="layout">7. Modalità layout</h2>
+<p>La modalità layout serve a posizionare una fonte nella scena senza mouse. Seleziona una fonte nel pannello Fonti e premi <kbd>Ctrl+M</kbd>. MetaOBS annuncia la fonte e il passo corrente; da quel momento i tasti agiscono sulla fonte:</p>
+<table>
+<caption>Tasti della modalità layout</caption>
+<thead><tr><th scope="col">Tasto</th><th scope="col">Azione</th></tr></thead>
+<tbody>
+<tr><td>Frecce</td><td>Spostano la fonte</td></tr>
+<tr><td><kbd>Ctrl</kbd>+frecce</td><td>Cambiano larghezza (destra, sinistra) o altezza (giù, su)</td></tr>
+<tr><td><kbd>+</kbd> e <kbd>-</kbd></td><td>Ingrandiscono o rimpiccioliscono mantenendo le proporzioni</td></tr>
+<tr><td><kbd>Alt</kbd>+frecce</td><td>Ritagliano il lato corrispondente</td></tr>
+<tr><td><kbd>Alt+Maiusc</kbd>+frecce</td><td>Riducono il ritaglio di quel lato</td></tr>
+<tr><td><kbd>R</kbd> / <kbd>Maiusc+R</kbd></td><td>Ruotano di 90 gradi attorno al centro</td></tr>
+<tr><td><kbd>S</kbd> / <kbd>Maiusc+S</kbd></td><td>Aumentano o riducono il passo: 1, 5, 10, 50 o 100 pixel (all'inizio 10)</td></tr>
+<tr><td><kbd>D</kbd></td><td>Descrive la posizione</td></tr>
+<tr><td><kbd>H</kbd></td><td>Legge l'elenco dei tasti</td></tr>
+<tr><td><kbd>Esc</kbd> o <kbd>Ctrl+M</kbd></td><td>Escono dalla modalità layout</td></tr>
+</tbody>
+</table>
+<p>La descrizione dice posizione, dimensioni, zona della scena (per esempio «in alto a destra»), quanta parte della scena occupa, l'eventuale ritaglio e quali altre fonti la coprono o sono coperte da lei. La stessa descrizione si ottiene fuori dalla modalità layout con <strong>Descrivi posizione</strong> nel menu Fonte.</p>
+<p>Le modifiche si annullano con <kbd>Ctrl+Z</kbd>: una serie di tasti premuti di seguito conta come una sola modifica.</p>
+</section>
+
+<section aria-labelledby="inquadratura">
+<h2 id="inquadratura">8. Controllo dell'inquadratura della webcam</h2>
+<p>MetaOBS può dirti se il tuo volto è centrato nell'immagine della webcam. Usa il riconoscimento dei volti di Windows: le immagini non lasciano il computer.</p>
+<h3>Controllo singolo</h3>
+<p>Nel pannello Fonti seleziona la webcam e premi <kbd>Ctrl+Maiusc+F</kbd>. MetaOBS legge un'unica frase, per esempio «Volto centrato», «spostati un po' alla tua sinistra, volto un po' alto» o «Sei lontano: avvicinati». Segnala anche un'immagine nera (webcam coperta, spenta o usata da un altro programma), molto scura o molto chiara, l'assenza di volti o la presenza di più volti (in quel caso le indicazioni riguardano il più vicino).</p>
+<p>Le indicazioni per destra e sinistra sono istruzioni dal tuo punto di vista («spostati alla tua destra»); quelle per l'altezza descrivono dove si trova il volto («volto troppo basso»): puoi correggerle alzando o abbassando la webcam o te stesso.</p>
+<h3>Guida continua</h3>
+<p><kbd>Ctrl+Alt+F</kbd> attiva la guida all'inquadratura: MetaOBS annuncia ogni cambiamento mentre ti sistemi, finché non premi di nuovo <kbd>Ctrl+Alt+F</kbd>. Si spegne da sola dopo due minuti.</p>
+<h3>Parte visibile nella scena</h3>
+<p>Le indicazioni si riferiscono alla parte della webcam che si vede nella scena, tenendo conto di ritaglio, dimensioni e posizione. Se il volto è fuori dalla parte visibile o tagliato, MetaOBS lo dice.</p>
+<h3>Immagine specchiata</h3>
+<p>Alcune webcam o i loro driver specchiano l'immagine, e allora destra e sinistra risulterebbero invertite. Per sistemarlo una volta per tutte, scegli <strong>Calibra destra e sinistra...</strong> dal menu Fonte con la webcam selezionata: guarda la webcam e resta fermo, poi, quando richiesto, spostati o inclinati verso la tua destra. MetaOBS imposta da solo la voce <strong>Immagine della webcam specchiata</strong>, che puoi anche attivare a mano.</p>
+<h3>Da qualsiasi programma</h3>
+<p>In Impostazioni, Scorciatoie puoi assegnare tasti globali a «Screen reader: Controlla inquadratura» e «Screen reader: Guida all'inquadratura». Usano l'ultima webcam controllata o, se non ce n'è una, la prima webcam visibile nella scena in onda.</p>
+</section>
+
+<section aria-labelledby="audio">
+<h2 id="audio">9. Pannello Audio</h2>
+<p>Ogni riga del mixer dice nome della fonte, volume in decibel e stato: «disattivata» (audio muto), «in ascolto» (monitoraggio attivo) o «inattiva».</p>
+<table>
+<caption>Tasti del pannello Audio</caption>
+<thead><tr><th scope="col">Tasto</th><th scope="col">Azione</th></tr></thead>
+<tbody>
+<tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Alzano o abbassano il volume di 1 dB (vanno bene anche i tasti del tastierino numerico)</td></tr>
+<tr><td><kbd>Ctrl++</kbd> / <kbd>Ctrl+-</kbd></td><td>Alzano o abbassano il volume di 5 dB</td></tr>
+<tr><td><kbd>M</kbd></td><td>Disattiva o riattiva l'audio</td></tr>
+<tr><td><kbd>K</kbd></td><td>Attiva o disattiva l'ascolto (monitoraggio in cuffia)</td></tr>
+<tr><td><kbd>L</kbd></td><td>Legge i livelli: picco e livello medio, o «Silenzio»</td></tr>
+<tr><td><kbd>Invio</kbd></td><td>Proprietà audio della fonte: volume, muto, monitoraggio e bilanciamento</td></tr>
+<tr><td><kbd>Ctrl+F</kbd></td><td>Filtri della fonte (per esempio soppressione del rumore, compressore)</td></tr>
+</tbody>
+</table>
+<p>Il menu Audio contiene anche Proprietà della fonte e Proprietà audio avanzate (sincronizzazione, tracce, downmix in mono). Ogni modifica dell'audio si può annullare con <kbd>Ctrl+Z</kbd>.</p>
+</section>
+
+<section aria-labelledby="controlli">
+<h2 id="controlli">10. Pannello Controlli e transizioni</h2>
+<p>La prima riga del pannello contiene i pulsanti: Avvia la trasmissione (o Termina la diretta), Avvia la registrazione (o Termina la registrazione), Sospendi la registrazione, Avvia il buffer di replay, Salva il replay, Avvia la fotocamera virtuale, Configura fotocamera virtuale e Modalità studio. Compaiono solo i pulsanti utili con le impostazioni correnti; per esempio Sospendi la registrazione compare durante una registrazione.</p>
+<p>La seconda riga contiene la <strong>transizione corrente</strong> (casella combinata) e la sua <strong>durata</strong> in millisecondi. In modalità studio ci sono anche il pulsante <strong>Transizione</strong>, che manda in onda la scena in anteprima, e la <strong>transizione manuale (T-bar)</strong>: un cursore in percentuale che sposti con le frecce. Arrivato a 100 completa la transizione, riportato a 0 la annulla.</p>
+<p>Il menu Controlli contiene le stesse azioni più:</p>
+<ul>
+<li><strong>Transizioni rapide</strong>, per eseguire subito una transizione con un'altra durata;</li>
+<li><strong>Transizioni di scena</strong>, per scegliere, aggiungere, rinominare, configurare o eliminare le transizioni.</li>
+</ul>
+<h3>Modalità studio</h3>
+<p>In modalità studio prepari una scena in anteprima senza che il pubblico la veda. Nel pannello Scene <kbd>Invio</kbd> mette una scena in anteprima, e il pannello Fonti mostra le fonti dell'anteprima. Poi il pulsante Transizione, o <kbd>Ctrl+Invio</kbd> nel pannello Scene, la manda in onda.</p>
+</section>
+
+<section aria-labelledby="stato">
+<h2 id="stato">11. Pannello Stato e avvisi</h2>
+<p>Il pannello Stato è un elenco che si aggiorna da solo. Contiene:</p>
+<ul>
+<li>stato della trasmissione e durata, bitrate e fotogrammi persi dalla rete;</li>
+<li>stato della registrazione e durata;</li>
+<li>buffer di replay e fotocamera virtuale;</li>
+<li>uso della CPU e fotogrammi al secondo;</li>
+<li>fotogrammi persi per ritardo di rendering o saltati per ritardo di codifica;</li>
+<li>spazio disponibile su disco;</li>
+<li>l'ultimo messaggio della barra di stato.</li>
+</ul>
+<p>Il menu Stato legge queste informazioni senza spostare il focus: riepilogo, trasmissione, registrazione, prestazioni, spazio su disco, scena corrente e ultimo messaggio. Tutte queste letture si possono assegnare a tasti globali (vedi sezione 13).</p>
+<h3>Avvisi</h3>
+<p>Se la quota di fotogrammi persi negli ultimi 10 secondi raggiunge la soglia (5% se non la cambi), MetaOBS ti avvisa, al massimo una volta al minuto. Durante una registrazione avvisa anche quando restano meno di 5 GB, e poi meno di 1 GB, di spazio su disco. Se la connessione cade, annuncia fra quanti secondi riproverà a collegarsi.</p>
+</section>
+
+<section aria-labelledby="annunci">
+<h2 id="annunci">12. Annunci e impostazioni di accessibilità</h2>
+<p>Le impostazioni si trovano in <strong>Archivio, Impostazioni, Accessibilità</strong>, nel gruppo «Screen reader»:</p>
+<dl>
+<dt>Avvia MetaOBS in modalità accessibile</dt>
+<dd>Attivo se non lo cambi.</dd>
+<dt>Annunci</dt>
+<dd>Quanto parla MetaOBS: Disattivati; Essenziali (errori, avvio e arresto); Normali (in più i messaggi della barra di stato); Dettagliati (in più «Avvio della registrazione», «Arresto della trasmissione» e simili). Il livello normale è quello preimpostato.</dd>
+<dt>Annuncia i cambi di stato di trasmissione, registrazione, buffer di replay e fotocamera virtuale</dt>
+<dd>Attivo se non lo cambi.</dd>
+<dt>Annuncia i messaggi della barra di stato</dt>
+<dd>Attivo se non lo cambi.</dd>
+<dt>Avvisa in caso di fotogrammi persi o in ritardo e di poco spazio su disco</dt>
+<dd>Gli avvisi della sezione 11, con la loro <strong>Soglia di avviso per i fotogrammi persi</strong>.</dd>
+<dt>Uscita vocale</dt>
+<dd><strong>Automatica</strong> (consigliata) parla direttamente con NVDA quando è in esecuzione, altrimenti usa le notifiche standard di Windows (UI Automation), che funzionano con gli altri screen reader. Le altre due voci forzano uno dei due metodi. Sotto la casella è indicato se NVDA è stato trovato.</dd>
+<dt>Prova annuncio / Prova annuncio tra 5 secondi</dt>
+<dd>Il secondo pulsante ti lascia 5 secondi per passare a un'altra finestra, così verifichi che gli annunci arrivino anche con MetaOBS in secondo piano.</dd>
+</dl>
+<div class="note">
+<p><strong>NVDA e gli altri screen reader.</strong> Con NVDA gli annunci arrivano sempre, anche mentre lavori in un altro programma, perché MetaOBS include il componente ufficiale «NVDA controller client». Con JAWS, Assistente vocale e gli altri screen reader gli annunci passano per UI Automation e di solito vengono letti solo quando la finestra di MetaOBS è in primo piano.</p>
+</div>
+</section>
+
+<section aria-labelledby="scorciatoie-globali">
+<h2 id="scorciatoie-globali">13. Scorciatoie globali</h2>
+<p>Le scorciatoie globali funzionano anche quando MetaOBS non è in primo piano. Si assegnano in <strong>Archivio, Impostazioni, Scorciatoie</strong>: cerca l'azione nel campo di filtro, porta il focus sul campo della combinazione e premi i tasti da assegnare.</p>
+<p>Oltre alle azioni normali di OBS (avvia e interrompi diretta e registrazione, cambia scena, disattiva l'audio di una fonte, mostra o nascondi una fonte e così via), MetaOBS aggiunge queste azioni, il cui nome inizia con «Screen reader:»:</p>
+<ul>
+<li>Leggi il riepilogo dello stato</li>
+<li>Leggi lo stato della trasmissione</li>
+<li>Leggi lo stato della registrazione</li>
+<li>Leggi le prestazioni</li>
+<li>Leggi lo spazio su disco</li>
+<li>Leggi la scena corrente</li>
+<li>Leggi l'ultimo messaggio</li>
+<li>Passa dalla modalità accessibile all'interfaccia standard e viceversa</li>
+<li>Controlla inquadratura</li>
+<li>Guida all'inquadratura</li>
+</ul>
+<p>All'inizio nessuna di queste azioni ha tasti assegnati. Scegli combinazioni che non usi in altri programmi, per esempio con <kbd>Ctrl+Alt+Maiusc</kbd>.</p>
+</section>
+
+<section aria-labelledby="palette">
+<h2 id="palette">14. Palette comandi</h2>
+<p><kbd>Ctrl+Maiusc+P</kbd> (o Visualizza, Palette comandi) apre una ricerca su tutti i comandi dei menu. Scrivi parte del nome, per esempio «registr» o «filtri»: MetaOBS dice quanti comandi ha trovato. <kbd>Invio</kbd> esegue il primo; <kbd>Freccia giù</kbd> porta all'elenco dei risultati, dove ogni comando riporta il suo menu e la sua scorciatoia. È anche un buon modo per imparare le scorciatoie.</p>
+</section>
+
+<section aria-labelledby="finestre">
+<h2 id="finestre">15. Finestre di dialogo, filtri e dock</h2>
+<p>MetaOBS ha reso accessibili anche le finestre condivise con OBS Studio: proprietà delle fonti, filtri, scorciatoie, aggiunta di una fonte, trasformazione, proprietà audio avanzate e impostazioni.</p>
+<h3>Filtri</h3>
+<p>La finestra Filtri ha due elenchi: filtri audio ed effetti video. Ogni filtro dice se è attivo o disattivato; la casella «Attivo» lo accende e lo spegne. Le impostazioni del filtro selezionato seguono l'elenco nell'ordine di tabulazione.</p>
+<h3>Interagisci</h3>
+<p>Nella finestra Interagisci i tasti vengono inviati alla fonte (per esempio a una pagina web). Per uscire premi <kbd>Ctrl+Tab</kbd> per arrivare al pulsante Chiudi, oppure <kbd>Maiusc+Esc</kbd> per chiudere la finestra.</p>
+<h3>Dock dei plugin</h3>
+<p>Molti plugin aggiungono pannelli («dock»). In modalità accessibile li trovi in <strong>Visualizza, Dock dei plugin...</strong>: scegli il dock e premi <strong>Apri</strong> per mostrarlo come finestra separata, o <strong>Nascondi</strong>. Da qui si aprono anche i <strong>Dock browser personalizzati</strong>, che mostrano una pagina web in un pannello: per eliminarne uno porta il focus sul suo pulsante di eliminazione e premi <kbd>Canc</kbd>, oppure premi <kbd>Ctrl+Maiusc+Canc</kbd> in uno dei suoi campi.</p>
+<p>Chiudendo un dock, OBS può suggerire di riaprirlo dal menu Dock: in modalità accessibile usa invece Visualizza, Dock dei plugin.</p>
+<h3>Finestre di plugin esterni</h3>
+<p>Alcuni plugin, come gli host di plugin audio, mostrano al loro interno una finestra di un altro programma. Quando il focus arriva su quella finestra, MetaOBS lo passa al suo contenuto; <kbd>Ctrl+Tab</kbd> e <kbd>Ctrl+Maiusc+Tab</kbd> riportano ai controlli di MetaOBS. L'accessibilità del contenuto dipende dal plugin.</p>
+</section>
+
+<section aria-labelledby="streamdeck">
+<h2 id="streamdeck">16. Stream Deck</h2>
+<p>MetaOBS usa direttamente gli Stream Deck di Elgato, senza l'app Elgato Stream Deck (che non è accessibile). Collega lo Stream Deck e apri <strong>Strumenti, Stream Deck...</strong>.</p>
+<div class="note">
+<p>Chiudi l'app Elgato Stream Deck: se è aperta, eseguirebbe anche le sue azioni, e la finestra di MetaOBS lo segnala. Il supporto è stato provato con lo Stream Deck Mini MK.2; sono previsti anche Mini, MK.2 e XL.</p>
+</div>
+<h3>La finestra Stream Deck</h3>
+<ul>
+<li><strong>Stato</strong>: quale Stream Deck è collegato.</li>
+<li><strong>Usa lo Stream Deck in MetaOBS</strong>: attiva o disattiva tutto.</li>
+<li><strong>Tasti</strong> (premi un tasto dello Stream Deck per trovarlo): un elenco con una riga per tasto, per esempio «Tasto 1, in alto a sinistra: Avvia registrazione». Mentre la finestra è aperta, premere un tasto fisico <em>non</em> esegue l'azione, ma seleziona la sua riga: è il modo più semplice per trovarlo.</li>
+<li><strong>Assegna azione...</strong>: apre l'elenco di tutte le azioni, divise in Generale, Scene, Fonti, Uscite e così via, con un campo di ricerca. Per le azioni a coppie (avvia e interrompi registrazione, disattiva e riattiva audio) la casella <strong>Alterna con ...: un solo tasto per entrambe</strong> fa fare entrambe allo stesso tasto.</li>
+<li><strong>Etichetta sul tasto</strong>: il testo mostrato sul display del tasto.</li>
+<li><strong>Rimuovi azione</strong> e <strong>Prova</strong>, che esegue l'azione del tasto selezionato.</li>
+<li><strong>Annuncia l'azione eseguita da ogni tasto</strong> e <strong>Luminosità dei tasti</strong>.</li>
+</ul>
+<p>Premendo un tasto, MetaOBS interrompe la voce e annuncia il risultato, per esempio «Microfono disattivata» o «Webcam visibile». Per diretta, registrazione e cambio di scena valgono gli annunci normali. Un tasto assegnato al push-to-talk resta attivo finché lo tieni premuto.</p>
+<p>Il display mostra in bianco l'etichetta del tasto, in grigio se l'azione non è disponibile (per esempio la sua fonte è stata eliminata). MetaOBS annuncia quando uno Stream Deck viene collegato o scollegato.</p>
+</section>
+
+<section aria-labelledby="midi">
+<h2 id="midi">17. Controller MIDI</h2>
+<p>Puoi comandare MetaOBS con un controller MIDI: knob e fader per volume, bilanciamento, T-bar, durata della transizione e impostazioni dei filtri; tasti per muto, scene, diretta, registrazione e qualsiasi altra azione. Se il controller ha luci o fader motorizzati, MetaOBS invia lo stato anche in uscita.</p>
+<h3>Assegnare un controllo (apprendimento MIDI)</h3>
+<ol>
+<li>Porta il focus su ciò che vuoi comandare: una riga del mixer, una scena, la T-bar, la durata, un pulsante del pannello Controlli, un'impostazione nelle proprietà di una fonte o di un filtro, un controllo delle proprietà audio.</li>
+<li>Premi <kbd>Ctrl+Maiusc+M</kbd>. MetaOBS dice cosa aspetta, per esempio «muovi un knob o un fader per Microfono: volume, oppure premi un tasto per Microfono: muto», e a cosa è assegnato ora.</li>
+<li>Muovi il knob o il fader, o premi il tasto, sul controller. MetaOBS conferma l'assegnazione.</li>
+</ol>
+<p>Durante l'attesa <kbd>Esc</kbd> annulla e <kbd>Canc</kbd> rimuove l'assegnazione esistente. Gli encoder infiniti vengono riconosciuti da soli.</p>
+<p>Con un fader non motorizzato, se il valore in MetaOBS è diverso dalla posizione del fader, il fader non agisce finché non lo raggiunge, così non ci sono salti di volume. MetaOBS ti guida con «Più su per raggiungere...» o «Più giù per raggiungere...».</p>
+<h3>La finestra Controller MIDI</h3>
+<p>Si apre da <strong>Strumenti, Controller MIDI...</strong> e contiene:</p>
+<ul>
+<li><strong>Usa i controller MIDI in MetaOBS</strong>.</li>
+<li><strong>Porte di ingresso</strong>: i controller trovati; <kbd>Spazio</kbd> attiva o disattiva ciascuno.</li>
+<li><strong>Porta di uscita per luci e fader motorizzati</strong>: «Automatica» sceglie quella con lo stesso nome dell'ingresso.</li>
+<li><strong>Assegnazioni</strong>: l'elenco delle assegnazioni. Muovendo un controllo sul controller si seleziona la sua riga o, se è libero, se ne aggiunge una nuova.</li>
+<li><strong>Assegna azione...</strong>: per i tasti, sceglie un'azione dall'elenco completo, come per lo Stream Deck.</li>
+<li><strong>Opzioni...</strong>: tipo di controllo (knob o fader, o un tipo di encoder infinito), aggancio, inversione della direzione, valore minimo e massimo, invio dello stato al controller e valori per luce accesa e spenta.</li>
+<li><strong>Rimuovi assegnazione</strong> e <strong>Annuncia valori e azioni</strong>.</li>
+</ul>
+<p>Se un altro programma usa già la porta del controller, MetaOBS lo segnala nello Stato.</p>
+</section>
+
+<section aria-labelledby="tasti">
+<h2 id="tasti">18. Riepilogo dei tasti</h2>
+<table>
+<caption>Tutti i tasti della modalità accessibile</caption>
+<thead><tr><th scope="col">Dove</th><th scope="col">Tasto</th><th scope="col">Azione</th></tr></thead>
+<tbody>
+<tr><td>Ovunque</td><td><kbd>F6</kbd> / <kbd>Maiusc+F6</kbd></td><td>Pannello successivo / precedente</td></tr>
+<tr><td>Ovunque</td><td><kbd>Ctrl+1</kbd> … <kbd>Ctrl+5</kbd></td><td>Scene, Fonti, Audio, Controlli, Stato</td></tr>
+<tr><td>Ovunque</td><td><kbd>F1</kbd></td><td>Apre questo manuale</td></tr>
+<tr><td>Ovunque</td><td><kbd>Ctrl+Maiusc+P</kbd></td><td>Palette comandi</td></tr>
+<tr><td>Ovunque</td><td><kbd>Ctrl+Maiusc+A</kbd></td><td>Modalità accessibile / interfaccia standard</td></tr>
+<tr><td>Ovunque</td><td><kbd>Ctrl+Maiusc+M</kbd></td><td>Assegna il controllo col focus a un controller MIDI</td></tr>
+<tr><td>Ovunque</td><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd></td><td>Annulla / Ripeti</td></tr>
+<tr><td>Scene</td><td><kbd>Invio</kbd></td><td>Passa alla scena (in modalità studio: in anteprima)</td></tr>
+<tr><td>Scene</td><td><kbd>Ctrl+Invio</kbd></td><td>Manda in programma</td></tr>
+<tr><td>Scene</td><td><kbd>F2</kbd>, <kbd>Canc</kbd>, <kbd>Ctrl+D</kbd></td><td>Rinomina, elimina, duplica</td></tr>
+<tr><td>Scene e Fonti</td><td><kbd>Alt</kbd>+<kbd>Freccia su</kbd>/<kbd>giù</kbd>/<kbd>Home</kbd>/<kbd>Fine</kbd></td><td>Sposta nell'elenco</td></tr>
+<tr><td>Fonti</td><td><kbd>Invio</kbd></td><td>Proprietà</td></tr>
+<tr><td>Fonti</td><td><kbd>Spazio</kbd></td><td>Mostra o nascondi</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+L</kbd></td><td>Blocca o sblocca</td></tr>
+<tr><td>Fonti e Audio</td><td><kbd>Ctrl+F</kbd></td><td>Filtri</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+T</kbd></td><td>Modifica trasformazione</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+I</kbd></td><td>Interagisci</td></tr>
+<tr><td>Fonti</td><td><kbd>F2</kbd>, <kbd>Canc</kbd></td><td>Rinomina, rimuovi</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+G</kbd> / <kbd>Ctrl+Maiusc+G</kbd></td><td>Raggruppa / separa</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+M</kbd></td><td>Modalità layout</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+Maiusc+F</kbd></td><td>Controlla inquadratura</td></tr>
+<tr><td>Fonti</td><td><kbd>Ctrl+Alt+F</kbd></td><td>Guida all'inquadratura</td></tr>
+<tr><td>Audio</td><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Volume ±1 dB</td></tr>
+<tr><td>Audio</td><td><kbd>Ctrl++</kbd> / <kbd>Ctrl+-</kbd></td><td>Volume ±5 dB</td></tr>
+<tr><td>Audio</td><td><kbd>M</kbd>, <kbd>K</kbd>, <kbd>L</kbd></td><td>Muto, ascolto, leggi livelli</td></tr>
+<tr><td>Audio</td><td><kbd>Invio</kbd></td><td>Proprietà audio</td></tr>
+<tr><td>Interagisci</td><td><kbd>Ctrl+Tab</kbd> / <kbd>Maiusc+Esc</kbd></td><td>Vai a Chiudi / chiudi</td></tr>
+</tbody>
+</table>
+<p>I tasti della modalità layout sono nella sezione 7.</p>
+</section>
+
+<section aria-labelledby="problemi">
+<h2 id="problemi">19. Risoluzione dei problemi</h2>
+<dl>
+<dt>Non sento gli annunci quando MetaOBS è in secondo piano.</dt>
+<dd>Con NVDA, controlla in Impostazioni, Accessibilità che l'uscita vocale sia «Automatica» e che sotto sia scritto che NVDA è in esecuzione, poi usa «Prova annuncio tra 5 secondi». Con altri screen reader gli annunci in secondo piano non sono garantiti.</dd>
+<dt>Non sento nessun annuncio.</dt>
+<dd>Controlla che il livello degli annunci non sia «Disattivati».</dd>
+<dt>Lo Stream Deck non risponde o esegue azioni strane.</dt>
+<dd>Chiudi l'app Elgato Stream Deck e controlla che «Usa lo Stream Deck in MetaOBS» sia attivo.</dd>
+<dt>Il controller MIDI non viene trovato o risulta «usato da un altro programma».</dt>
+<dd>Chiudi gli altri programmi musicali che usano il controller e riapri la finestra Controller MIDI.</dd>
+<dt>Il controllo dell'inquadratura dice «Immagine nera».</dt>
+<dd>La webcam può essere coperta, spenta o usata da un altro programma, come un'app di videochiamata.</dd>
+<dt>Destra e sinistra dell'inquadratura sono invertite.</dt>
+<dd>Usa Calibra destra e sinistra nel menu Fonte (sezione 8).</dd>
+<dt>L'aggiornamento non è riuscito.</dt>
+<dd>Il messaggio mostrato all'avvio indica il file con i dettagli. Puoi sempre scaricare e installare la versione nuova a mano dalla pagina delle versioni.</dd>
+<dt>Devo inviare un rapporto di errore.</dt>
+<dd>Dal menu Aiuto, File di log, puoi caricare o aprire il log dell'ultima sessione. I log sono in <code>%APPDATA%\obs-studio\logs</code>.</dd>
+</dl>
+</section>
+</main>
+</body>
+</html>

@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MetaOBS Manual</title>
+<style>
+:root {
+	--bg: #ffffff;
+	--fg: #1b1b1b;
+	--muted: #555555;
+	--accent: #0b5cad;
+	--border: #c8c8c8;
+	--code-bg: #f1f1f1;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #1a1a1a;
+		--fg: #e8e8e8;
+		--muted: #b0b0b0;
+		--accent: #7cb8ff;
+		--border: #4a4a4a;
+		--code-bg: #2a2a2a;
+	}
+}
+body {
+	background: var(--bg);
+	color: var(--fg);
+	font-family: "Segoe UI", system-ui, sans-serif;
+	font-size: 1.05rem;
+	line-height: 1.6;
+	max-width: 52rem;
+	margin: 0 auto;
+	padding: 1rem;
+}
+a { color: var(--accent); }
+h1, h2, h3 { line-height: 1.25; }
+h2 { border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 2.5rem; }
+kbd {
+	background: var(--code-bg);
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	padding: 0 0.3em;
+	font-family: inherit;
+}
+code { background: var(--code-bg); padding: 0 0.3em; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid var(--border); padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+th { background: var(--code-bg); }
+.note { border-left: 4px solid var(--accent); padding: 0.2rem 0.8rem; margin: 1rem 0; }
+</style>
+</head>
+<body>
+<header>
+<h1>MetaOBS Manual</h1>
+<p>This manual describes MetaOBS 1.1.2 for Windows. In Italian: <a href="it-IT.html">Manuale di MetaOBS</a>.</p>
+</header>
+
+<nav aria-labelledby="contents">
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#introduction">What MetaOBS is</a></li>
+<li><a href="#installation">Installation and updates</a></li>
+<li><a href="#getting-started">Getting started</a></li>
+<li><a href="#window">The Accessible Mode window</a></li>
+<li><a href="#scenes">Scenes panel</a></li>
+<li><a href="#sources">Sources panel</a></li>
+<li><a href="#layout">Layout mode</a></li>
+<li><a href="#framing">Webcam framing check</a></li>
+<li><a href="#audio">Audio panel</a></li>
+<li><a href="#controls">Controls panel and transitions</a></li>
+<li><a href="#status">Status panel and warnings</a></li>
+<li><a href="#announcements">Announcements and accessibility settings</a></li>
+<li><a href="#global-hotkeys">Global hotkeys</a></li>
+<li><a href="#palette">Command palette</a></li>
+<li><a href="#dialogs">Dialogs, filters and docks</a></li>
+<li><a href="#streamdeck">Stream Deck</a></li>
+<li><a href="#midi">MIDI controllers</a></li>
+<li><a href="#keys">Keyboard reference</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+</nav>
+
+<main>
+<section aria-labelledby="introduction">
+<h2 id="introduction">1. What MetaOBS is</h2>
+<p>MetaOBS is a version of OBS Studio designed for screen reader users. It does everything OBS Studio does (streaming, recording, scenes, sources, filters, plugins) and adds an <strong>Accessible Mode</strong>: a main window built from standard lists, buttons and menus, fully usable from the keyboard and tested with NVDA.</p>
+<p>MetaOBS also:</p>
+<ul>
+<li>announces through your screen reader when streams and recordings start and stop, scene changes, errors and stream quality warnings, even when its window is not in the foreground;</li>
+<li>lets you move, resize and crop sources from the keyboard, and describes their position;</li>
+<li>tells you whether your face is well framed by the webcam;</li>
+<li>supports Stream Deck and MIDI controllers directly, without inaccessible third-party apps.</li>
+</ul>
+<p>This manual covers the features that MetaOBS adds. For general OBS concepts (scenes, sources, encoders, output settings), see the OBS Studio documentation at <a href="https://obsproject.com/kb">obsproject.com/kb</a>.</p>
+</section>
+
+<section aria-labelledby="installation">
+<h2 id="installation">2. Installation and updates</h2>
+<h3>Installing</h3>
+<p>Download the installer from the MetaOBS releases page on GitHub (<a href="https://github.com/lcasarotti/MetaOBS/releases">github.com/lcasarotti/MetaOBS/releases</a>) and run it. It first asks whether to install MetaOBS for you only (no administrator rights needed) or for all users of the computer. If needed, it also installs the Microsoft Visual C++ libraries.</p>
+<p>MetaOBS installs into its own folder and can sit alongside OBS Studio. However, <strong>MetaOBS and OBS Studio share the same configuration</strong> (scenes, profiles, settings, plugins installed for your user), stored in <code>%APPDATA%\obs-studio</code>. Changes made in one show up in the other. Don't run them at the same time.</p>
+<p>Instead of the installer you can use the zip archive: extract it to a folder and run <code>bin\64bit\obs64.exe</code>.</p>
+<h3>Updates</h3>
+<p>MetaOBS checks for updates from <strong>Help, Check For Updates</strong>, and at startup if that option is turned on in the General settings. When it finds a new version, it downloads it, verifies it, closes, installs the update and restarts. If you are streaming or recording, it asks before closing. At the next start it tells you which version it was updated to, or why the update failed.</p>
+</section>
+
+<section aria-labelledby="getting-started">
+<h2 id="getting-started">3. Getting started</h2>
+<p>MetaOBS opens directly in Accessible Mode. The window is called "MetaOBS", followed by the version number and "Accessible Mode".</p>
+<p>On first start, OBS offers the <strong>Auto-Configuration Wizard</strong>, which picks the resolution, frame rate and quality for streaming or recording. You can run it again at any time from the Tools menu.</p>
+<p>A typical path to your first recording:</p>
+<ol>
+<li>The Scenes panel already contains a scene. Press <kbd>Ctrl+2</kbd> to go to the Sources panel.</li>
+<li>Open the Source menu (<kbd>Alt+O</kbd>) and choose <strong>Add Source...</strong>. For example, choose "Video Capture Device" for your webcam, or "Display Capture".</li>
+<li>Name the source and confirm. The properties dialog opens, where you choose the device.</li>
+<li>Press <kbd>Ctrl+3</kbd> to check in the Audio panel that your microphone and desktop audio are active.</li>
+<li>Press <kbd>Ctrl+4</kbd> to move to the Controls panel, and press <strong>Start Recording</strong>. MetaOBS announces "Recording started".</li>
+</ol>
+<p>Recordings are saved to the folder set in Settings, Output (usually your Videos folder).</p>
+<h3>Switching to the standard interface</h3>
+<p><kbd>Ctrl+Shift+A</kbd>, or the View menu, switches between Accessible Mode and the standard OBS interface. The standard interface is mainly for sighted users. To stop starting in Accessible Mode, turn off "Start MetaOBS in Accessible Mode" in Settings, Accessibility.</p>
+<p>When MetaOBS is minimized to the notification area, its icon's menu has an <strong>Accessible Mode</strong> item.</p>
+</section>
+
+<section aria-labelledby="window">
+<h2 id="window">4. The Accessible Mode window</h2>
+<p>The window has five panels. Move between them with <kbd>F6</kbd> (next panel) and <kbd>Shift+F6</kbd> (previous), or jump straight to one:</p>
+<table>
+<caption>Window panels</caption>
+<thead><tr><th scope="col">Key</th><th scope="col">Panel</th><th scope="col">Contents</th></tr></thead>
+<tbody>
+<tr><td><kbd>Ctrl+1</kbd></td><td>Scenes</td><td>The scenes of the current scene collection</td></tr>
+<tr><td><kbd>Ctrl+2</kbd></td><td>Sources</td><td>The sources of the current scene, including groups</td></tr>
+<tr><td><kbd>Ctrl+3</kbd></td><td>Audio Mixer</td><td>One row per audio source, with volume and state</td></tr>
+<tr><td><kbd>Ctrl+4</kbd></td><td>Controls</td><td>Buttons for streaming, recording, replay buffer, virtual camera and Studio Mode, plus transition controls</td></tr>
+<tr><td><kbd>Ctrl+5</kbd></td><td>Status</td><td>Output state, performance and disk space</td></tr>
+</tbody>
+</table>
+<p><kbd>Tab</kbd> also goes through the panels in the same order.</p>
+<p>Each panel has its own menu in the menu bar (Scene, Source, Audio, Controls, Status), with the same items as its context menu. Open the context menu with the Applications key or <kbd>Shift+F10</kbd>. Menus show each item's shortcut.</p>
+<p>The other menus are the usual OBS ones: File (with Settings), Edit (Undo and Redo), View, Profile, Scene Collection, Tools and Help. The Help menu has this manual, which also opens in your browser with <kbd>F1</kbd> from any MetaOBS window. The View menu also has the command palette, plugin docks, projectors (preview, program, multiview) and Screenshot Output.</p>
+</section>
+
+<section aria-labelledby="scenes">
+<h2 id="scenes">5. Scenes panel</h2>
+<p>Each scene in the list says whether it is "live" (the scene being streamed or recorded) or, in Studio Mode, "preview".</p>
+<ul>
+<li><kbd>Enter</kbd> switches to the selected scene. In Studio Mode it puts the scene in the preview.</li>
+<li><kbd>Ctrl+Enter</kbd> sends the selected scene straight to program with the current transition, even in Studio Mode.</li>
+<li><kbd>F2</kbd> renames, <kbd>Delete</kbd> removes, <kbd>Ctrl+D</kbd> duplicates.</li>
+<li><kbd>Alt+Up Arrow</kbd> and <kbd>Alt+Down Arrow</kbd> move the scene in the list; <kbd>Alt+Home</kbd> and <kbd>Alt+End</kbd> move it to the top or bottom.</li>
+</ul>
+<p>The Scene menu also has: Add Scene, scene Filters, Copy and Paste Filters, Screenshot Scene, and <strong>Transition Override...</strong>, which picks a specific transition for switching to that scene.</p>
+<p>When the live scene changes, MetaOBS announces "Live:" followed by its name. With a transition it announces "Transition from A to B".</p>
+</section>
+
+<section aria-labelledby="sources">
+<h2 id="sources">6. Sources panel</h2>
+<p>The panel is named "Sources in" followed by the scene name. In Studio Mode it shows the preview scene. It is a tree: open and close groups with the Right and Left Arrow keys. Each source says whether it is hidden or locked. Use <kbd>Ctrl</kbd> or <kbd>Shift</kbd> to select several sources.</p>
+<table>
+<caption>Sources panel keys</caption>
+<thead><tr><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
+<tbody>
+<tr><td><kbd>Enter</kbd></td><td>Opens the source's properties</td></tr>
+<tr><td><kbd>Space</kbd></td><td>Shows or hides the source in the scene</td></tr>
+<tr><td><kbd>Ctrl+L</kbd></td><td>Locks or unlocks the source</td></tr>
+<tr><td><kbd>Ctrl+F</kbd></td><td>Source filters</td></tr>
+<tr><td><kbd>Ctrl+T</kbd></td><td>Edit Transform (position, size, rotation and crop as number fields)</td></tr>
+<tr><td><kbd>Ctrl+I</kbd></td><td>Interact (for example with a browser source)</td></tr>
+<tr><td><kbd>F2</kbd></td><td>Rename</td></tr>
+<tr><td><kbd>Delete</kbd></td><td>Removes the source from the scene</td></tr>
+<tr><td><kbd>Alt+Up Arrow</kbd> / <kbd>Alt+Down Arrow</kbd></td><td>Moves the source above or below the others (the order decides what covers what)</td></tr>
+<tr><td><kbd>Alt+Home</kbd> / <kbd>Alt+End</kbd></td><td>Moves it to the top or bottom</td></tr>
+<tr><td><kbd>Ctrl+G</kbd> / <kbd>Ctrl+Shift+G</kbd></td><td>Groups the selected sources / ungroups</td></tr>
+<tr><td><kbd>Ctrl+M</kbd></td><td>Layout mode (see section 7)</td></tr>
+<tr><td><kbd>Ctrl+Shift+F</kbd></td><td>Checks the webcam framing (see section 8)</td></tr>
+<tr><td><kbd>Ctrl+Alt+F</kbd></td><td>Framing guidance</td></tr>
+</tbody>
+</table>
+<p>The Source menu also has: Add Source, Properties, Describe Position, the Transform submenu (fit to screen, center, flip and so on), Copy and Paste, Copy and Paste Filters, Show Transition and Hide Transition, Hide in Mixer, Resize output (source size), scale filtering, blending mode, source projectors and Screenshot Source.</p>
+</section>
+
+<section aria-labelledby="layout">
+<h2 id="layout">7. Layout mode</h2>
+<p>Layout mode lets you place a source in the scene without a mouse. Select a source in the Sources panel and press <kbd>Ctrl+M</kbd>. MetaOBS announces the source and the current step; from then on, keys act on the source:</p>
+<table>
+<caption>Layout mode keys</caption>
+<thead><tr><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
+<tbody>
+<tr><td>Arrows</td><td>Move the source</td></tr>
+<tr><td><kbd>Ctrl</kbd>+arrows</td><td>Change the width (Right, Left) or height (Down, Up)</td></tr>
+<tr><td><kbd>+</kbd> and <kbd>-</kbd></td><td>Grow or shrink, keeping the proportions</td></tr>
+<tr><td><kbd>Alt</kbd>+arrows</td><td>Crop that side</td></tr>
+<tr><td><kbd>Alt+Shift</kbd>+arrows</td><td>Reduce the crop of that side</td></tr>
+<tr><td><kbd>R</kbd> / <kbd>Shift+R</kbd></td><td>Rotate 90 degrees around the center</td></tr>
+<tr><td><kbd>S</kbd> / <kbd>Shift+S</kbd></td><td>Increase or decrease the step: 1, 5, 10, 50 or 100 pixels (10 at first)</td></tr>
+<tr><td><kbd>D</kbd></td><td>Describes the position</td></tr>
+<tr><td><kbd>H</kbd></td><td>Reads the list of keys</td></tr>
+<tr><td><kbd>Esc</kbd> or <kbd>Ctrl+M</kbd></td><td>Leave layout mode</td></tr>
+</tbody>
+</table>
+<p>The description gives the position, size, area of the scene (for example "top right"), how much of the scene the source covers, any crop, and which other sources cover it or are covered by it. You get the same description outside layout mode with <strong>Describe Position</strong> in the Source menu.</p>
+<p><kbd>Ctrl+Z</kbd> undoes changes; a burst of key presses counts as a single change.</p>
+</section>
+
+<section aria-labelledby="framing">
+<h2 id="framing">8. Webcam framing check</h2>
+<p>MetaOBS can tell you whether your face is centered in the webcam picture. It uses the face detection built into Windows; images never leave your computer.</p>
+<h3>Single check</h3>
+<p>Select the webcam in the Sources panel and press <kbd>Ctrl+Shift+F</kbd>. MetaOBS speaks one sentence, such as "Face centered", "move a little to your left, face a little high" or "You are far away: come closer". It also reports a black picture (the webcam may be covered, off or in use by another program), a very dark or very bright picture, no face, or several faces (the advice is then about the closest one).</p>
+<p>Left and right advice is an instruction from your point of view ("move to your right"). Height advice describes where your face is ("face too low"): fix it by raising or lowering the webcam or yourself.</p>
+<h3>Continuous guidance</h3>
+<p><kbd>Ctrl+Alt+F</kbd> turns on framing guidance: MetaOBS announces every change while you adjust your position, until you press <kbd>Ctrl+Alt+F</kbd> again. It turns itself off after two minutes.</p>
+<h3>The part shown in the scene</h3>
+<p>The advice is about the part of the webcam picture that the scene shows, taking crop, size and position into account. If your face is outside that part, or cut off, MetaOBS says so.</p>
+<h3>Mirrored picture</h3>
+<p>Some webcams or their drivers mirror the picture, which would swap left and right. To fix this once and for all, select the webcam and choose <strong>Calibrate Left and Right...</strong> from the Source menu. Look at the webcam and keep still, then, when asked, move or lean to your right. MetaOBS sets <strong>Mirrored Camera Picture</strong> for you; you can also check it by hand.</p>
+<h3>From any program</h3>
+<p>In Settings, Hotkeys you can assign global keys to "Screen reader: Check Framing" and "Screen reader: Framing Guidance". They use the webcam you checked last or, if there is none, the first visible webcam in the live scene.</p>
+</section>
+
+<section aria-labelledby="audio">
+<h2 id="audio">9. Audio panel</h2>
+<p>Each mixer row gives the source name, the volume in decibels and the state: "muted", "monitored" (you hear it in your headphones) or "inactive".</p>
+<table>
+<caption>Audio panel keys</caption>
+<thead><tr><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
+<tbody>
+<tr><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Raise or lower the volume by 1 dB (the numeric keypad keys work too)</td></tr>
+<tr><td><kbd>Ctrl++</kbd> / <kbd>Ctrl+-</kbd></td><td>Raise or lower the volume by 5 dB</td></tr>
+<tr><td><kbd>M</kbd></td><td>Mute or unmute</td></tr>
+<tr><td><kbd>K</kbd></td><td>Turn monitoring on or off</td></tr>
+<tr><td><kbd>L</kbd></td><td>Read levels: peak and average level, or "Silence"</td></tr>
+<tr><td><kbd>Enter</kbd></td><td>The source's audio properties: volume, mute, monitoring and balance</td></tr>
+<tr><td><kbd>Ctrl+F</kbd></td><td>Source filters (for example noise suppression, compressor)</td></tr>
+</tbody>
+</table>
+<p>The Audio menu also has the source Properties and Advanced Audio Properties (sync offset, tracks, mono downmix). <kbd>Ctrl+Z</kbd> undoes any audio change.</p>
+</section>
+
+<section aria-labelledby="controls">
+<h2 id="controls">10. Controls panel and transitions</h2>
+<p>The first row of the panel holds the buttons: Start or Stop Streaming, Start or Stop Recording, Pause Recording, Start Replay Buffer, Save Replay, Start Virtual Camera, Configure Virtual Camera and Studio Mode. Only the buttons that make sense with your current settings appear; Pause Recording, for example, appears while recording.</p>
+<p>The second row holds the <strong>current transition</strong> (a combo box) and its <strong>duration</strong> in milliseconds. In Studio Mode there are also the <strong>Transition</strong> button, which sends the preview scene live, and the <strong>manual transition (T-bar)</strong>: a percentage slider you move with the arrow keys. At 100 it completes the transition; back at 0 it cancels it.</p>
+<p>The Controls menu has the same actions, plus:</p>
+<ul>
+<li><strong>Quick Transitions</strong>, to run a transition right away with another duration;</li>
+<li><strong>Scene Transitions</strong>, to pick, add, rename, configure or remove transitions.</li>
+</ul>
+<h3>Studio Mode</h3>
+<p>In Studio Mode you prepare a scene in the preview without your audience seeing it. In the Scenes panel, <kbd>Enter</kbd> puts a scene in the preview, and the Sources panel shows the preview's sources. Then the Transition button, or <kbd>Ctrl+Enter</kbd> in the Scenes panel, sends it live.</p>
+</section>
+
+<section aria-labelledby="status">
+<h2 id="status">11. Status panel and warnings</h2>
+<p>The Status panel is a list that updates itself. It contains:</p>
+<ul>
+<li>streaming state and duration, bitrate and frames dropped by the network;</li>
+<li>recording state and duration;</li>
+<li>replay buffer and virtual camera;</li>
+<li>CPU usage and frames per second;</li>
+<li>frames missed due to rendering lag or skipped due to encoding lag;</li>
+<li>free disk space;</li>
+<li>the last status bar message.</li>
+</ul>
+<p>The Status menu reads this information without moving the focus: summary, streaming, recording, performance, disk space, current scene and last message. Each of these readouts can be assigned to a global hotkey (see section 13).</p>
+<h3>Warnings</h3>
+<p>If the share of frames lost in the last 10 seconds reaches the threshold (5% unless you change it), MetaOBS warns you, at most once a minute. While recording, it also warns when less than 5 GB, and then less than 1 GB, of disk space is left. If the connection drops, it announces in how many seconds it will try to reconnect.</p>
+</section>
+
+<section aria-labelledby="announcements">
+<h2 id="announcements">12. Announcements and accessibility settings</h2>
+<p>The settings are in <strong>File, Settings, Accessibility</strong>, in the "Screen reader" group:</p>
+<dl>
+<dt>Start MetaOBS in Accessible Mode</dt>
+<dd>On unless you change it.</dd>
+<dt>Announcements</dt>
+<dd>How much MetaOBS speaks: Off; Essential (errors, start and stop); Normal (adds status bar messages); Verbose (adds "Starting recording", "Stopping stream" and the like). Normal is the default.</dd>
+<dt>Announce streaming, recording, replay buffer and virtual camera changes</dt>
+<dd>On unless you change it.</dd>
+<dt>Announce status bar messages</dt>
+<dd>On unless you change it.</dd>
+<dt>Warn about dropped or lagged frames and low disk space</dt>
+<dd>The warnings from section 11, with their <strong>Lost frames warning threshold</strong>.</dd>
+<dt>Speech output</dt>
+<dd><strong>Automatic</strong> (recommended) talks to NVDA directly when it is running, and otherwise uses standard Windows notifications (UI Automation), which work with other screen readers. The other two choices force one method. The text below the box says whether NVDA was found.</dd>
+<dt>Test announcement / Test announcement in 5 seconds</dt>
+<dd>The second button gives you 5 seconds to switch to another window, so you can check that announcements also come through while MetaOBS is in the background.</dd>
+</dl>
+<div class="note">
+<p><strong>NVDA and other screen readers.</strong> With NVDA, announcements always come through, even while you work in another program, because MetaOBS includes the official NVDA controller client. With JAWS, Narrator and other screen readers, announcements go through UI Automation and are usually only spoken while the MetaOBS window is in the foreground.</p>
+</div>
+</section>
+
+<section aria-labelledby="global-hotkeys">
+<h2 id="global-hotkeys">13. Global hotkeys</h2>
+<p>Global hotkeys work even when MetaOBS is not in the foreground. Assign them in <strong>File, Settings, Hotkeys</strong>: type the action's name in the filter field, move to its key field and press the keys you want.</p>
+<p>Besides the usual OBS actions (start and stop streaming and recording, switch scene, mute a source, show or hide a source and so on), MetaOBS adds these actions, whose names start with "Screen reader:":</p>
+<ul>
+<li>Read Status Summary</li>
+<li>Read Streaming Status</li>
+<li>Read Recording Status</li>
+<li>Read Performance</li>
+<li>Read Disk Space</li>
+<li>Read Current Scene</li>
+<li>Read Last Message</li>
+<li>Switch between Accessible Mode and the standard interface</li>
+<li>Check Framing</li>
+<li>Framing Guidance</li>
+</ul>
+<p>None of them has keys assigned at first. Pick combinations that you don't use in other programs, for example with <kbd>Ctrl+Alt+Shift</kbd>.</p>
+</section>
+
+<section aria-labelledby="palette">
+<h2 id="palette">14. Command palette</h2>
+<p><kbd>Ctrl+Shift+P</kbd> (or View, Command Palette) opens a search over every menu command. Type part of a name, such as "record" or "filters", and MetaOBS says how many commands it found. <kbd>Enter</kbd> runs the first one; <kbd>Down Arrow</kbd> moves to the result list, where each command shows its menu and its shortcut. It is also a good way to learn the shortcuts.</p>
+</section>
+
+<section aria-labelledby="dialogs">
+<h2 id="dialogs">15. Dialogs, filters and docks</h2>
+<p>MetaOBS has also made the dialogs it shares with OBS Studio accessible: source properties, filters, hotkeys, add source, edit transform, advanced audio properties and settings.</p>
+<h3>Filters</h3>
+<p>The Filters dialog has two lists: audio filters and video effects. Each filter says whether it is enabled or disabled; the "Enabled" check box turns it on and off. The selected filter's settings follow the list in the Tab order.</p>
+<h3>Interact</h3>
+<p>In the Interact dialog, keys are sent to the source (for example to a web page). To get out, press <kbd>Ctrl+Tab</kbd> to reach the Close button, or <kbd>Shift+Esc</kbd> to close the dialog.</p>
+<h3>Plugin docks</h3>
+<p>Many plugins add panels ("docks"). In Accessible Mode you find them in <strong>View, Plugin Docks...</strong>: choose a dock and press <strong>Open</strong> to show it as a separate window, or <strong>Hide</strong>. From there you also reach <strong>Custom Browser Docks</strong>, which show a web page in a panel. To remove one, move to its delete button and press <kbd>Delete</kbd>, or press <kbd>Ctrl+Shift+Delete</kbd> in one of its fields.</p>
+<p>When you close a dock, OBS may suggest reopening it from the Docks menu. In Accessible Mode, use View, Plugin Docks instead.</p>
+<h3>Windows of external plugins</h3>
+<p>Some plugins, such as audio plugin hosts, show a window of another program inside their panel. When the focus reaches that window, MetaOBS hands it to the window's contents; <kbd>Ctrl+Tab</kbd> and <kbd>Ctrl+Shift+Tab</kbd> bring you back to the MetaOBS controls. How accessible the contents are depends on the plugin.</p>
+</section>
+
+<section aria-labelledby="streamdeck">
+<h2 id="streamdeck">16. Stream Deck</h2>
+<p>MetaOBS drives Elgato Stream Decks directly, without the Elgato Stream Deck app (which is not accessible). Connect the Stream Deck and open <strong>Tools, Stream Deck...</strong>.</p>
+<div class="note">
+<p>Close the Elgato Stream Deck app: if it is running, it would also run its own actions, and the MetaOBS dialog warns you about it. Support has been tested with the Stream Deck Mini MK.2; the Mini, MK.2 and XL are also supported.</p>
+</div>
+<h3>The Stream Deck dialog</h3>
+<ul>
+<li><strong>Status</strong>: which Stream Deck is connected.</li>
+<li><strong>Use the Stream Deck in MetaOBS</strong>: turns everything on or off.</li>
+<li><strong>Keys</strong> (press a key on the Stream Deck to find it): a list with one row per key, for example "Key 1, top left: Start Recording". While the dialog is open, pressing a physical key does <em>not</em> run its action; it selects the key's row. That is the easiest way to find a key.</li>
+<li><strong>Assign action...</strong>: opens the list of all actions, grouped as General, Scenes, Sources, Outputs and so on, with a search field. For paired actions (start and stop recording, mute and unmute), the <strong>Toggle with ...: one key for both</strong> check box makes one key do both.</li>
+<li><strong>Label on the key</strong>: the text shown on the key's display.</li>
+<li><strong>Remove action</strong>, and <strong>Try</strong>, which runs the selected key's action.</li>
+<li><strong>Announce what each key does</strong> and <strong>Key brightness</strong>.</li>
+</ul>
+<p>When you press a key, MetaOBS interrupts speech and announces the result, for example "Mic/Aux muted" or "Webcam shown". Streaming, recording and scene changes use the usual announcements. A key assigned to push-to-talk stays active as long as you hold it.</p>
+<p>The display shows the key's label in white, or in gray when the action is not available (for example, its source was deleted). MetaOBS announces when a Stream Deck is connected or disconnected.</p>
+</section>
+
+<section aria-labelledby="midi">
+<h2 id="midi">17. MIDI controllers</h2>
+<p>You can control MetaOBS with a MIDI controller: knobs and faders for volume, balance, the T-bar, the transition duration and filter settings; buttons for mute, scenes, streaming, recording and any other action. If the controller has lights or motorized faders, MetaOBS sends the state back to it.</p>
+<h3>Assigning a control (MIDI learn)</h3>
+<ol>
+<li>Move the focus to what you want to control: a mixer row, a scene, the T-bar, the duration, a button in the Controls panel, a setting in a source's or filter's properties, a control in the audio properties.</li>
+<li>Press <kbd>Ctrl+Shift+M</kbd>. MetaOBS says what it is waiting for, for example "move a knob or fader for Mic/Aux: volume, or press a button for Mic/Aux: mute", and what it is assigned to now.</li>
+<li>Move the knob or fader, or press the button, on the controller. MetaOBS confirms the assignment.</li>
+</ol>
+<p>While it waits, <kbd>Esc</kbd> cancels and <kbd>Delete</kbd> removes the existing assignment. Endless encoders are recognized automatically.</p>
+<p>With a non-motorized fader, if the value in MetaOBS differs from the fader's position, the fader has no effect until it reaches that value, so the volume never jumps. MetaOBS guides you with "Move up to reach..." or "Move down to reach...".</p>
+<h3>The MIDI Controllers dialog</h3>
+<p>Open it from <strong>Tools, MIDI Controllers...</strong>. It contains:</p>
+<ul>
+<li><strong>Use MIDI controllers in MetaOBS</strong>.</li>
+<li><strong>Input ports</strong>: the controllers found; <kbd>Space</kbd> turns each one on or off.</li>
+<li><strong>Output port for lights and motorized faders</strong>: "Automatic" picks the one with the same name as the input.</li>
+<li><strong>Assignments</strong>: the list of assignments. Moving a control on the controller selects its row or, if the control is free, adds a new one.</li>
+<li><strong>Assign action...</strong>: for buttons, picks an action from the full list, as for the Stream Deck.</li>
+<li><strong>Options...</strong>: control type (knob or fader, or a kind of endless encoder), soft takeover, invert direction, minimum and maximum value, sending the state to the controller, and the values for light on and off.</li>
+<li><strong>Remove assignment</strong> and <strong>Announce values and actions</strong>.</li>
+</ul>
+<p>If another program is already using the controller's port, MetaOBS says so in the Status.</p>
+</section>
+
+<section aria-labelledby="keys">
+<h2 id="keys">18. Keyboard reference</h2>
+<table>
+<caption>All Accessible Mode keys</caption>
+<thead><tr><th scope="col">Where</th><th scope="col">Key</th><th scope="col">Action</th></tr></thead>
+<tbody>
+<tr><td>Anywhere</td><td><kbd>F6</kbd> / <kbd>Shift+F6</kbd></td><td>Next / previous panel</td></tr>
+<tr><td>Anywhere</td><td><kbd>Ctrl+1</kbd> … <kbd>Ctrl+5</kbd></td><td>Scenes, Sources, Audio, Controls, Status</td></tr>
+<tr><td>Anywhere</td><td><kbd>F1</kbd></td><td>Opens this manual</td></tr>
+<tr><td>Anywhere</td><td><kbd>Ctrl+Shift+P</kbd></td><td>Command palette</td></tr>
+<tr><td>Anywhere</td><td><kbd>Ctrl+Shift+A</kbd></td><td>Accessible Mode / standard interface</td></tr>
+<tr><td>Anywhere</td><td><kbd>Ctrl+Shift+M</kbd></td><td>Assign the focused control to a MIDI controller</td></tr>
+<tr><td>Anywhere</td><td><kbd>Ctrl+Z</kbd> / <kbd>Ctrl+Y</kbd></td><td>Undo / Redo</td></tr>
+<tr><td>Scenes</td><td><kbd>Enter</kbd></td><td>Switch to the scene (in Studio Mode: to the preview)</td></tr>
+<tr><td>Scenes</td><td><kbd>Ctrl+Enter</kbd></td><td>Send to program</td></tr>
+<tr><td>Scenes</td><td><kbd>F2</kbd>, <kbd>Delete</kbd>, <kbd>Ctrl+D</kbd></td><td>Rename, remove, duplicate</td></tr>
+<tr><td>Scenes and Sources</td><td><kbd>Alt</kbd>+<kbd>Up</kbd>/<kbd>Down</kbd>/<kbd>Home</kbd>/<kbd>End</kbd></td><td>Move in the list</td></tr>
+<tr><td>Sources</td><td><kbd>Enter</kbd></td><td>Properties</td></tr>
+<tr><td>Sources</td><td><kbd>Space</kbd></td><td>Show or hide</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+L</kbd></td><td>Lock or unlock</td></tr>
+<tr><td>Sources and Audio</td><td><kbd>Ctrl+F</kbd></td><td>Filters</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+T</kbd></td><td>Edit Transform</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+I</kbd></td><td>Interact</td></tr>
+<tr><td>Sources</td><td><kbd>F2</kbd>, <kbd>Delete</kbd></td><td>Rename, remove</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+G</kbd> / <kbd>Ctrl+Shift+G</kbd></td><td>Group / ungroup</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+M</kbd></td><td>Layout mode</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+Shift+F</kbd></td><td>Check framing</td></tr>
+<tr><td>Sources</td><td><kbd>Ctrl+Alt+F</kbd></td><td>Framing guidance</td></tr>
+<tr><td>Audio</td><td><kbd>+</kbd> / <kbd>-</kbd></td><td>Volume ±1 dB</td></tr>
+<tr><td>Audio</td><td><kbd>Ctrl++</kbd> / <kbd>Ctrl+-</kbd></td><td>Volume ±5 dB</td></tr>
+<tr><td>Audio</td><td><kbd>M</kbd>, <kbd>K</kbd>, <kbd>L</kbd></td><td>Mute, monitoring, read levels</td></tr>
+<tr><td>Audio</td><td><kbd>Enter</kbd></td><td>Audio properties</td></tr>
+<tr><td>Interact</td><td><kbd>Ctrl+Tab</kbd> / <kbd>Shift+Esc</kbd></td><td>Go to Close / close</td></tr>
+</tbody>
+</table>
+<p>The layout mode keys are in section 7.</p>
+</section>
+
+<section aria-labelledby="troubleshooting">
+<h2 id="troubleshooting">19. Troubleshooting</h2>
+<dl>
+<dt>I don't hear announcements while MetaOBS is in the background.</dt>
+<dd>With NVDA, check in Settings, Accessibility that Speech output is "Automatic" and that the text below it says NVDA is running, then use "Test announcement in 5 seconds". With other screen readers, background announcements are not guaranteed.</dd>
+<dt>I don't hear any announcements.</dt>
+<dd>Check that Announcements is not set to "Off".</dd>
+<dt>The Stream Deck doesn't respond, or runs unexpected actions.</dt>
+<dd>Close the Elgato Stream Deck app and check that "Use the Stream Deck in MetaOBS" is on.</dd>
+<dt>The MIDI controller isn't found, or is "used by another program".</dt>
+<dd>Close other music programs that use the controller and reopen the MIDI Controllers dialog.</dd>
+<dt>The framing check says "Black picture".</dt>
+<dd>The webcam may be covered, off or in use by another program, such as a video call app.</dd>
+<dt>Left and right are swapped in the framing advice.</dt>
+<dd>Use Calibrate Left and Right in the Source menu (section 8).</dd>
+<dt>The update failed.</dt>
+<dd>The message shown at startup names the file with the details. You can always download and install the new version by hand from the releases page.</dd>
+<dt>I need to send a bug report.</dt>
+<dd>From Help, Log Files, you can upload or open the log of the last session. Logs are in <code>%APPDATA%\obs-studio\logs</code>.</dd>
+</dl>
+</section>
+</main>
+</body>
+</html>

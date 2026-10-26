@@ -24,12 +24,15 @@
 #include <widgets/OBSBasic.hpp>
 
 #include <obs-frontend-api.h>
+#include <qt-wrappers.hpp>
 #include <util/text-lookup.h>
 
 #include <QAction>
 #include <QApplication>
+#include <QDesktopServices>
 #include <QMenu>
 #include <QPointer>
+#include <QUrl>
 
 #include <string>
 
@@ -92,6 +95,37 @@ void AddModeActionToTray(OBSBasic *main)
 
 	QList<QAction *> actions = trayMenu->actions();
 	trayMenu->insertAction(actions.size() > 1 ? actions[1] : nullptr, action);
+}
+
+/* The manual is installed for some languages only; the others get the
+ * English one. */
+void OpenManual()
+{
+	std::string path;
+	std::string relativePath = std::string("manual/") + App()->GetLocale() + ".html";
+	if (!GetDataFilePath(relativePath.c_str(), path) && !GetDataFilePath("manual/en-US.html", path)) {
+		blog(LOG_WARNING, "[Accessibility] Manual not found");
+		OBSMessageBox::warning(QApplication::activeWindow(), QTStr("Accessibility.Manual.Title"),
+				       QTStr("Accessibility.Manual.NotFound"));
+		return;
+	}
+
+	QDesktopServices::openUrl(QUrl::fromLocalFile(QT_UTF8(path.c_str())));
+}
+
+/* The Help menu is shared by both windows. F1 works in every window of the
+ * application, since the main window is hidden in Accessible Mode. */
+void AddManualAction(OBSBasic *main)
+{
+	QAction *action = new QAction(QTStr("Accessibility.Manual.Action"), main);
+	action->setShortcut(QKeySequence(Qt::Key_F1));
+	action->setShortcutContext(Qt::ApplicationShortcut);
+	QObject::connect(action, &QAction::triggered, main, []() { OpenManual(); });
+
+	QMenu *helpMenu = OBSAccessibleBridge::HelpMenu(main);
+	QAction *first = helpMenu->actions().value(0);
+	helpMenu->insertAction(first, action);
+	helpMenu->insertSeparator(first);
 }
 
 #ifdef _WIN32
@@ -179,6 +213,7 @@ void Initialize(OBSBasic *main)
 #endif
 
 	AddModeActionToMainWindow(main);
+	AddManualAction(main);
 
 	AddModeActionToTray(main);
 
