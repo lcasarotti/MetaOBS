@@ -148,6 +148,9 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 					       {QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F)});
 	framingGuidanceAction = CreatePanelAction(view, QTStr("Accessibility.Framing.Guidance"),
 						  {QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F)});
+	calibrateMirroringAction = CreatePanelAction(view, QTStr("Accessibility.Framing.Calibrate"));
+	mirroredAction = CreatePanelAction(view, QTStr("Accessibility.Framing.Mirrored"));
+	mirroredAction->setCheckable(true);
 #endif
 
 	layoutMode = new LayoutMode(main, view, [this]() { return GetSelectedItem(); });
@@ -235,6 +238,16 @@ SourcesPanel::SourcesPanel(OBSBasic *main_, QWidget *parent) : QGroupBox(parent)
 			check->ToggleGuidance(main->GetCurrentScene(), GetSelectedItem());
 		}
 	});
+	connect(calibrateMirroringAction, &QAction::triggered, this, [this]() {
+		if (FramingCheck *check = FramingCheck::Get()) {
+			check->CalibrateMirroring(main->GetCurrentScene(), GetSelectedItem());
+		}
+	});
+	connect(mirroredAction, &QAction::triggered, this, [this](bool checked) {
+		if (OBSSceneItem item = GetSelectedItem()) {
+			FramingCheck::SetMirrored(obs_sceneitem_get_source(item), checked);
+		}
+	});
 #endif
 
 	CreateMenu();
@@ -280,6 +293,8 @@ void SourcesPanel::CreateMenu()
 #ifdef _WIN32
 	menu->addAction(checkFramingAction);
 	menu->addAction(framingGuidanceAction);
+	menu->addAction(calibrateMirroringAction);
+	menu->addAction(mirroredAction);
 #endif
 	menu->addSeparator();
 	menu->addAction(visibilityAction);
@@ -390,6 +405,13 @@ void SourcesPanel::UpdateMenuState()
 	hideTransitionAction->setEnabled(item != nullptr);
 	screenshotAction->setVisible(hasVideo);
 	describeLayoutAction->setVisible(hasVideo);
+#ifdef _WIN32
+	/* The framing actions with shortcuts stay visible: Qt ignores the
+	 * shortcuts of hidden actions. */
+	calibrateMirroringAction->setVisible(hasVideo);
+	mirroredAction->setVisible(hasVideo);
+	mirroredAction->setChecked(hasVideo && FramingCheck::IsMirrored(source));
+#endif
 	resizeOutputAction->setVisible(hasVideo);
 	resizeOutputAction->setEnabled(hasVideo && !obs_video_active() && obs_source_get_width(source) >= 32 &&
 				       obs_source_get_height(source) >= 32);

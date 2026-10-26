@@ -11,6 +11,7 @@
 
 using OBS::Accessibility::Affine2D;
 using OBS::Accessibility::AnalyzeFraming;
+using OBS::Accessibility::CalibrateMirroring;
 using OBS::Accessibility::FaceBox;
 using OBS::Accessibility::FramingAdvice;
 using OBS::Accessibility::FramingAmount;
@@ -19,7 +20,9 @@ using OBS::Accessibility::FramingLight;
 using OBS::Accessibility::FramingMove;
 using OBS::Accessibility::FramingVisibility;
 using OBS::Accessibility::ItemPlacement;
+using OBS::Accessibility::LargestFace;
 using OBS::Accessibility::MeanLuma;
+using OBS::Accessibility::MirrorCalibration;
 using OBS::Accessibility::RgbaToGray;
 using OBS::Accessibility::VisibleWindow;
 using OBS::Accessibility::wholePicture;
@@ -212,4 +215,21 @@ A11Y_TEST(FramingAdviceIsAboutTheWindow)
 	advice = AnalyzeFraming({Face(0.1, 0.45)}, middleHalf, goodLuma, false);
 	A11Y_CHECK(advice.visibility == FramingVisibility::Outside);
 	A11Y_CHECK(advice.horizontal == FramingMove::Left);
+}
+
+A11Y_TEST(FramingCalibrationFollowsTheMove)
+{
+	/* Moving to their right, the person goes to the left of a picture
+	 * that is not mirrored. */
+	A11Y_CHECK(CalibrateMirroring(Face(0.5, 0.45), Face(0.4, 0.45)) == MirrorCalibration::NotMirrored);
+	A11Y_CHECK(CalibrateMirroring(Face(0.5, 0.45), Face(0.6, 0.45)) == MirrorCalibration::Mirrored);
+	A11Y_CHECK(CalibrateMirroring(Face(0.5, 0.45), Face(0.52, 0.3)) == MirrorCalibration::NoMove);
+}
+
+A11Y_TEST(FramingLargestFace)
+{
+	A11Y_CHECK(LargestFace({}) == nullptr);
+
+	std::vector<FaceBox> faces = {Face(0.2, 0.5, 0.1, 0.1), Face(0.6, 0.5, 0.3, 0.3)};
+	A11Y_CHECK(LargestFace(faces) == &faces[1]);
 }

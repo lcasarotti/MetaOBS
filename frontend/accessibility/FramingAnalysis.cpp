@@ -45,6 +45,10 @@ FramingLight LightFor(double meanLuma)
 	return FramingLight::Good;
 }
 
+/* The least move, as a share of the picture's width, that calibration
+ * trusts. */
+constexpr double calibrationMove = 0.04;
+
 /* A face counts as partly outside the window when this share of it is. */
 constexpr double partlyOutsideShare = 0.15;
 
@@ -186,9 +190,7 @@ FramingAdvice AnalyzeFraming(const std::vector<FaceBox> &faces, const FaceBox &w
 		return advice;
 	}
 
-	const FaceBox &face = *std::max_element(faces.begin(), faces.end(), [](const FaceBox &a, const FaceBox &b) {
-		return a.width * a.height < b.width * b.height;
-	});
+	const FaceBox &face = *LargestFace(faces);
 
 	if (window.width <= 0.0 || window.height <= 0.0) {
 		return advice;
@@ -227,6 +229,29 @@ FramingAdvice AnalyzeFraming(const std::vector<FaceBox> &faces, const FaceBox &w
 	}
 
 	return advice;
+}
+
+const FaceBox *LargestFace(const std::vector<FaceBox> &faces)
+{
+	if (faces.empty()) {
+		return nullptr;
+	}
+
+	return &*std::max_element(faces.begin(), faces.end(), [](const FaceBox &a, const FaceBox &b) {
+		return a.width * a.height < b.width * b.height;
+	});
+}
+
+MirrorCalibration CalibrateMirroring(const FaceBox &before, const FaceBox &after)
+{
+	double move = (after.left + after.width / 2.0) - (before.left + before.width / 2.0);
+	if (std::fabs(move) < calibrationMove) {
+		return MirrorCalibration::NoMove;
+	}
+
+	/* Facing the camera, the person's right is the left of a picture that
+	 * is not mirrored. */
+	return move < 0.0 ? MirrorCalibration::NotMirrored : MirrorCalibration::Mirrored;
 }
 
 double MeanLuma(const uint8_t *gray, int width, int height, int stride)

@@ -121,6 +121,20 @@ struct FramingAdvice {
 FramingAdvice AnalyzeFraming(const std::vector<FaceBox> &faces, const FaceBox &window, double meanLuma,
 			     bool mirrored);
 
+/* The largest face, the one closest to the camera, or nullptr. */
+const FaceBox *LargestFace(const std::vector<FaceBox> &faces);
+
+enum class MirrorCalibration {
+	Invalid = 0,
+	NoMove,
+	NotMirrored,
+	Mirrored,
+};
+
+/* Tells whether a camera's picture is mirrored from where the face was
+ * before and after the person moved to their own right. */
+MirrorCalibration CalibrateMirroring(const FaceBox &before, const FaceBox &after);
+
 /* The whole picture. */
 constexpr FaceBox wholePicture = {0.0, 0.0, 1.0, 1.0};
 

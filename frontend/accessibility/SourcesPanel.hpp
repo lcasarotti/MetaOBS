@@ -116,6 +116,8 @@ private:
 #ifdef _WIN32
 	QAction *checkFramingAction;
 	QAction *framingGuidanceAction;
+	QAction *calibrateMirroringAction;
+	QAction *mirroredAction;
 #endif
 	LayoutMode *layoutMode;
 

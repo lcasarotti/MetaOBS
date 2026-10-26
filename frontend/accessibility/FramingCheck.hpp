@@ -39,12 +39,22 @@ public:
 	void Check(obs_scene_t *scene, obs_sceneitem_t *item);
 	void ToggleGuidance(obs_scene_t *scene, obs_sceneitem_t *item);
 
+	/* Finds out whether the camera's picture is mirrored by asking the
+	 * person to move to their right, and remembers it for the source. */
+	void CalibrateMirroring(obs_scene_t *scene, obs_sceneitem_t *item);
+
+	/* Whether the source's picture is mirrored, which turns left and right
+	 * around in the advice. Saved with the source. */
+	static bool IsMirrored(obs_source_t *source);
+	static void SetMirrored(obs_source_t *source, bool mirrored);
+
 private:
 	enum class Mode {
 		Invalid = 0,
 		Idle,
 		Check,
 		Guidance,
+		Calibration,
 	};
 
 	/* The steps the graphics thread goes through to read a picture back,
@@ -71,6 +81,7 @@ private:
 		bool hidden = false;
 		bool offCanvas = false;
 		bool partial = false;
+		bool mirrored = false;
 	};
 
 	static void OnTick(void *data, float seconds);
@@ -88,6 +99,7 @@ private:
 	void OnResult(uint64_t id, bool pictureRead, bool available, const std::vector<FaceBox> &faces,
 		      double meanLuma);
 	void OnGuidanceTick();
+	void OnCalibrationResult(const std::vector<FaceBox> &faces);
 	/* placement adds what the scene does to the picture, for the first
 	 * advice. */
 	QString Describe(const FramingAdvice &advice, const Placement *placement = nullptr) const;
@@ -114,6 +126,8 @@ private:
 	std::optional<FramingAdvice> candidate;
 	int candidateCount = 0;
 	std::optional<FramingAdvice> announced;
+	/* Where the face was before the person moved, during calibration. */
+	std::optional<FaceBox> calibrationStart;
 
 	/* Shared with the graphics thread. */
 	std::mutex grabMutex;

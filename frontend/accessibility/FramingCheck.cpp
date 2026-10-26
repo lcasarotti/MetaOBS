@@ -29,6 +29,12 @@ constexpr uint32_t pictureWidth = 640;
 /* A camera that was not showing needs a moment to start. */
 constexpr int cameraStartDelay = 1500;
 
+/* Calibration gives the person time to settle, then to move. */
+constexpr int calibrationSettleDelay = 2000;
+constexpr int calibrationMoveDelay = 3000;
+
+constexpr const char *mirroredSetting = "metaobsFramingMirrored";
+
 constexpr int guidanceInterval = 500;
 constexpr qint64 guidanceDuration = 2 * 60 * 1000;
 /* The same advice must come twice in a row before it is spoken, so a face
@@ -278,6 +284,33 @@ void FramingCheck::ToggleGuidance(obs_scene_t *scene, obs_sceneitem_t *item)
 	Start(scene, item, Mode::Guidance);
 }
 
+void FramingCheck::CalibrateMirroring(obs_scene_t *scene, obs_sceneitem_t *item)
+{
+	if (!scene || !item) {
+		AnnounceRequested(QTStr("Accessibility.Framing.NoCamera"));
+		return;
+	}
+
+	AnnounceRequested(QTStr("Accessibility.Framing.Calibration.Start"));
+	Start(scene, item, Mode::Calibration);
+}
+
+bool FramingCheck::IsMirrored(obs_source_t *source)
+{
+	OBSDataAutoRelease settings = source ? obs_source_get_private_settings(source) : nullptr;
+	return settings && obs_data_get_bool(settings, mirroredSetting);
+}
+
+void FramingCheck::SetMirrored(obs_source_t *source, bool mirrored)
+{
+	if (!source) {
+		return;
+	}
+
+	OBSDataAutoRelease settings = obs_source_get_private_settings(source);
+	obs_data_set_bool(settings, mirroredSetting, mirrored);
+}
+
 void FramingCheck::Start(obs_scene_t *scene, obs_sceneitem_t *item, Mode newMode)
 {
 	Stop();
@@ -297,6 +330,12 @@ void FramingCheck::Start(obs_scene_t *scene, obs_sceneitem_t *item, Mode newMode
 		QTimer::singleShot(delay, this, [this]() {
 			if (mode == Mode::Guidance) {
 				guidanceTimer->start();
+			}
+		});
+	} else if (mode == Mode::Calibration) {
+		QTimer::singleShot(std::max(delay, calibrationSettleDelay), this, [this]() {
+			if (mode == Mode::Calibration) {
+				RequestPicture();
 			}
 		});
 	} else {
@@ -328,6 +367,8 @@ FramingCheck::Placement FramingCheck::CurrentPlacement() const
 		return placement;
 	}
 
+	placement.mirrored = IsMirrored(obs_sceneitem_get_source(item));
+
 	obs_sceneitem_t *group = obs_sceneitem_get_group(scene, item);
 	placement.hidden = !obs_sceneitem_visible(item) || (group && !obs_sceneitem_visible(group));
 
@@ -350,6 +391,7 @@ void FramingCheck::Stop()
 	candidate.reset();
 	candidateCount = 0;
 	announced.reset();
+	calibrationStart.reset();
 
 	{
 		std::lock_guard lock(grabMutex);
@@ -523,8 +565,14 @@ void FramingCheck::OnResult(uint64_t id, bool pictureRead, bool available, const
 		return;
 	}
 
+	if (mode == Mode::Calibration) {
+		LogResult(faces, wholePicture, meanLuma);
+		OnCalibrationResult(faces);
+		return;
+	}
+
 	Placement placement = CurrentPlacement();
-	FramingAdvice advice = AnalyzeFraming(faces, placement.window, meanLuma, false);
+	FramingAdvice advice = AnalyzeFraming(faces, placement.window, meanLuma, placement.mirrored);
 
 	if (mode == Mode::Check) {
 		LogResult(faces, placement.window, meanLuma);
@@ -552,6 +600,47 @@ void FramingCheck::OnResult(uint64_t id, bool pictureRead, bool available, const
 		if (Announcer *announcer = Announcer::Get()) {
 			announcer->AnnounceAtOnce(Describe(advice, first ? &placement : nullptr));
 		}
+	}
+}
+
+void FramingCheck::OnCalibrationResult(const std::vector<FaceBox> &faces)
+{
+	const FaceBox *face = LargestFace(faces);
+	if (!face) {
+		Stop();
+		AnnounceRequested(QTStr("Accessibility.Framing.Calibration.NoFace"));
+		return;
+	}
+
+	if (!calibrationStart) {
+		calibrationStart = *face;
+		if (Announcer *announcer = Announcer::Get()) {
+			announcer->AnnounceAtOnce(QTStr("Accessibility.Framing.Calibration.Move"));
+		}
+		QTimer::singleShot(calibrationMoveDelay, this, [this]() {
+			if (mode == Mode::Calibration) {
+				RequestPicture();
+			}
+		});
+		return;
+	}
+
+	MirrorCalibration result = OBS::Accessibility::CalibrateMirroring(*calibrationStart, *face);
+	OBSSource source = shownSource;
+	Stop();
+
+	switch (result) {
+	case MirrorCalibration::NotMirrored:
+		SetMirrored(source, false);
+		AnnounceRequested(QTStr("Accessibility.Framing.Calibration.NotMirrored"));
+		break;
+	case MirrorCalibration::Mirrored:
+		SetMirrored(source, true);
+		AnnounceRequested(QTStr("Accessibility.Framing.Calibration.Mirrored"));
+		break;
+	default:
+		AnnounceRequested(QTStr("Accessibility.Framing.Calibration.NoMove"));
+		break;
 	}
 }
 
