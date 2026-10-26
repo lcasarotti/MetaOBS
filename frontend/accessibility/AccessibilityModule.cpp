@@ -139,6 +139,9 @@ bool ShouldStartInAccessibleMode()
 		break;
 	}
 
+	/* The main window asks this before Initialize runs, so the defaults
+	 * have to be in place here already. */
+	Settings::SetDefaults();
 	return Settings::GetAccessibleMode();
 }
 

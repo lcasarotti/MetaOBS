@@ -29,7 +29,7 @@ void SetDefaults()
 {
 	config_t *config = GetConfig();
 
-	config_set_default_bool(config, section, accessibleModeKey, false);
+	config_set_default_bool(config, section, accessibleModeKey, true);
 	config_set_default_int(config, section, announceLevelKey, static_cast<int>(AnnounceLevel::Normal));
 	config_set_default_bool(config, section, announceOutputsKey, true);
 	config_set_default_bool(config, section, announceStatusMessagesKey, true);
